@@ -244,6 +244,10 @@ void BlockSparseMatrix::ToTextFile(FILE* file) const {
   }
 }
 
+void BlockSparseMatrix::ToPETScFile(FILE* file) const {
+  throw "unimplimented";
+}
+
 BlockSparseMatrix* BlockSparseMatrix::CreateDiagonalMatrix(
     const double* diagonal, const std::vector<Block>& column_blocks) {
   // Create the block structure for the diagonal matrix.

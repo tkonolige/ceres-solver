@@ -64,6 +64,7 @@ class DenseSparseMatrix : public SparseMatrix {
   virtual void ScaleColumns(const double* scale);
   virtual void ToDenseMatrix(Matrix* dense_matrix) const;
   virtual void ToTextFile(FILE* file) const;
+  virtual void ToPETScFile(FILE* file) const;
   virtual int num_rows() const;
   virtual int num_cols() const;
   virtual int num_nonzeros() const;

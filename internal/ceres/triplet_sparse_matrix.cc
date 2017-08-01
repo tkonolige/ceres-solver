@@ -284,6 +284,10 @@ void TripletSparseMatrix::ToTextFile(FILE* file) const {
   }
 }
 
+void TripletSparseMatrix::ToPETScFile(FILE* file) const {
+  throw "unimplimented";
+}
+
 TripletSparseMatrix* TripletSparseMatrix::CreateRandomMatrix(
     const TripletSparseMatrix::RandomMatrixOptions& options) {
   CHECK_GT(options.num_rows, 0);

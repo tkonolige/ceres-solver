@@ -381,6 +381,39 @@ void CompressedRowSparseMatrix::ToTextFile(FILE* file) const {
   }
 }
 
+void CompressedRowSparseMatrix::ToPETScFile(FILE* file) const {
+  CHECK_NOTNULL(file);
+  int magic = 1211216;
+  fwrite(&magic, sizeof(int), 1, file);
+  fwrite(&num_rows_, sizeof(int), 1, file);
+  fwrite(&num_cols_, sizeof(int), 1, file);
+  int nnz = num_nonzeros();
+  fwrite(&nnz, sizeof(int), 1, file);
+
+  // write row lengths
+  for (int r = 0; r < num_rows_; ++r) {
+    int row_size = rows_[r+1] - rows_[r];
+    fwrite(&row_size, sizeof(int), 1, file);
+  }
+
+  assert(num_nonzeros() == cols_.size());
+  assert(num_nonzeros() == values_.size());
+
+  fwrite(cols_.data(), sizeof(int), num_nonzeros(), file);
+  fwrite(values_.data(), sizeof(double), num_nonzeros(), file);
+
+  // for (int r = 0; r < num_rows_; ++r) {
+  //   for (int idx = rows_[r]; idx < rows_[r + 1]; ++idx) {
+  //     fwrite(&cols_[idx], sizeof(int));
+  //   }
+  // }
+  // for (int r = 0; r < num_rows_; ++r) {
+  //   for (int idx = rows_[r]; idx < rows_[r + 1]; ++idx) {
+  //     fwrite(&values_[idx], sizeof(double));
+  //   }
+  // }
+}
+
 void CompressedRowSparseMatrix::ToCRSMatrix(CRSMatrix* matrix) const {
   matrix->num_rows = num_rows_;
   matrix->num_cols = num_cols_;

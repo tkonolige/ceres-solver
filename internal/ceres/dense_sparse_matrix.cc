@@ -179,5 +179,9 @@ void DenseSparseMatrix::ToTextFile(FILE* file) const {
   }
 }
 
+void DenseSparseMatrix::ToPETScFile(FILE* file) const {
+  throw "unimplimented";
+}
+
 }  // namespace internal
 }  // namespace ceres

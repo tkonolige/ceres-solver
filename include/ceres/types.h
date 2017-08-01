@@ -387,7 +387,9 @@ enum DumpFormatType {
   //
   // A MATLAB/octave script called lm_iteration_???.m is also output,
   // which can be used to parse and load the problem into memory.
-  TEXTFILE
+  TEXTFILE,
+
+  PETSC
 };
 
 // For SizedCostFunction and AutoDiffCostFunction, DYNAMIC can be

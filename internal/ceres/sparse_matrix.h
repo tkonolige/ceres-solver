@@ -89,6 +89,9 @@ class SparseMatrix : public LinearOperator {
   // sparse matrix.
   virtual void ToTextFile(FILE* file) const = 0;
 
+  // Write out the matrix to a PETSc binary file.
+  virtual void ToPETScFile(FILE* file) const = 0;
+
   // Accessors for the values array that stores the entries of the
   // sparse matrix. The exact interpreptation of the values of this
   // array depends on the particular kind of SparseMatrix being

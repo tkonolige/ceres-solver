@@ -704,6 +704,41 @@ bool DumpLinearLeastSquaresProblemToTextFile(const string& filename_base,
   WriteStringToFileOrDie(matlab_script, matlab_filename);
   return true;
 }
+bool DumpLinearLeastSquaresProblemToPETSc(const string& filename_base,
+                                          const SparseMatrix* A,
+                                          const double* D,
+                                          const double* b,
+                                          const double* x,
+                                          int num_eliminate_blocks) {
+  CHECK_NOTNULL(A);
+  LOG(INFO) << "writing to: " << filename_base << "*";
+
+  {
+    string filename = filename_base + "_A.txt";
+    FILE* fptr = fopen(filename.c_str(), "w");
+    CHECK_NOTNULL(fptr);
+    A->ToPETScFile(fptr);
+    fclose(fptr);
+  }
+
+
+  if (D != NULL) {
+    string filename = filename_base + "_D.txt";
+    WriteArrayToFileOrDie(filename, D, A->num_cols());
+  }
+
+  if (b != NULL) {
+    string filename = filename_base + "_b.txt";
+    WriteArrayToFileOrDie(filename, b, A->num_rows());
+  }
+
+  if (x != NULL) {
+    string filename = filename_base + "_x.txt";
+    WriteArrayToFileOrDie(filename, x, A->num_cols());
+  }
+
+  return true;
+}
 }  // namespace
 
 bool DumpLinearLeastSquaresProblem(const string& filename_base,
@@ -721,6 +756,10 @@ bool DumpLinearLeastSquaresProblem(const string& filename_base,
       return DumpLinearLeastSquaresProblemToTextFile(filename_base,
                                                      A, D, b, x,
                                                      num_eliminate_blocks);
+    case PETSC:
+      return DumpLinearLeastSquaresProblemToPETSc(filename_base,
+                                                  A, D, b, x,
+                                                  num_eliminate_blocks);
     default:
       LOG(FATAL) << "Unknown DumpFormatType " << dump_format_type;
   }

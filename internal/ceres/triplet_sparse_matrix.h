@@ -68,6 +68,7 @@ class TripletSparseMatrix : public SparseMatrix {
   virtual void ScaleColumns(const double* scale);
   virtual void ToDenseMatrix(Matrix* dense_matrix) const;
   virtual void ToTextFile(FILE* file) const;
+  virtual void ToPETScFile(FILE* file) const;
   virtual int num_rows()        const { return num_rows_;     }
   virtual int num_cols()        const { return num_cols_;     }
   virtual int num_nonzeros()    const { return num_nonzeros_; }
