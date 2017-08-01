@@ -714,7 +714,7 @@ bool DumpLinearLeastSquaresProblemToPETSc(const string& filename_base,
   LOG(INFO) << "writing to: " << filename_base << "*";
 
   {
-    string filename = filename_base + "_A.txt";
+    string filename = filename_base + "_A.petsc";
     FILE* fptr = fopen(filename.c_str(), "w");
     CHECK_NOTNULL(fptr);
     A->ToPETScFile(fptr);
