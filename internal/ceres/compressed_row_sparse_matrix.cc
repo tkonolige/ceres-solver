@@ -383,24 +383,34 @@ void CompressedRowSparseMatrix::ToTextFile(FILE* file) const {
 
 void CompressedRowSparseMatrix::ToPETScFile(FILE* file) const {
   CHECK_NOTNULL(file);
-  int magic = 1211216;
+  int magic = __builtin_bswap32(1211216);
   fwrite(&magic, sizeof(int), 1, file);
-  fwrite(&num_rows_, sizeof(int), 1, file);
-  fwrite(&num_cols_, sizeof(int), 1, file);
-  int nnz = num_nonzeros();
+  int num_rows = __builtin_bswap32(num_rows_);
+  fwrite(&num_rows, sizeof(int), 1, file);
+  int num_cols = __builtin_bswap32(num_cols_);
+  fwrite(&num_cols, sizeof(int), 1, file);
+  int nnz = __builtin_bswap32(num_nonzeros());
   fwrite(&nnz, sizeof(int), 1, file);
 
   // write row lengths
   for (int r = 0; r < num_rows_; ++r) {
-    int row_size = rows_[r+1] - rows_[r];
+    int row_size = __builtin_bswap32(rows_[r+1] - rows_[r]);
     fwrite(&row_size, sizeof(int), 1, file);
   }
 
   assert(num_nonzeros() == cols_.size());
   assert(num_nonzeros() == values_.size());
 
-  fwrite(cols_.data(), sizeof(int), num_nonzeros(), file);
-  fwrite(values_.data(), sizeof(double), num_nonzeros(), file);
+  for(int i = 0; i < cols_.size(); i++) {
+    int x = __builtin_bswap32(cols_[i]);
+    fwrite(&x, sizeof(int), 1, file);
+  }
+  for(int i = 0; i < values_.size(); i++) {
+    uint64_t x = __builtin_bswap64((*(uint64_t*)&values_[i]));
+    // printf("%e %e\n", x, values_[i]);
+    // x = values_[i];
+    fwrite(&x, sizeof(double), 1, file);
+  }
 
   // for (int r = 0; r < num_rows_; ++r) {
   //   for (int idx = rows_[r]; idx < rows_[r + 1]; ++idx) {
