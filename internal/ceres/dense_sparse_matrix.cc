@@ -180,6 +180,7 @@ void DenseSparseMatrix::ToTextFile(FILE* file) const {
 }
 
 void DenseSparseMatrix::ToPETScFile(FILE* file) const {
+  printf("denseparse\n");
   throw "unimplimented";
 }
 

@@ -285,6 +285,7 @@ void TripletSparseMatrix::ToTextFile(FILE* file) const {
 }
 
 void TripletSparseMatrix::ToPETScFile(FILE* file) const {
+  printf("triplet\n");
   throw "unimplimented";
 }
 

@@ -38,6 +38,7 @@
 #include "ceres/random.h"
 #include "ceres/small_blas.h"
 #include "ceres/triplet_sparse_matrix.h"
+#include "ceres/compressed_row_sparse_matrix.h"
 #include "glog/logging.h"
 
 namespace ceres {
@@ -245,7 +246,11 @@ void BlockSparseMatrix::ToTextFile(FILE* file) const {
 }
 
 void BlockSparseMatrix::ToPETScFile(FILE* file) const {
-  throw "unimplimented";
+  TripletSparseMatrix triplets;
+  ToTripletSparseMatrix(&triplets);
+  CompressedRowSparseMatrix* crs = CompressedRowSparseMatrix::FromTripletSparseMatrix(triplets);
+  crs->ToPETScFile(file);
+  delete crs;
 }
 
 BlockSparseMatrix* BlockSparseMatrix::CreateDiagonalMatrix(
