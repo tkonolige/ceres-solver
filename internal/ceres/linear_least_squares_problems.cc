@@ -646,6 +646,24 @@ void WriteArrayToFileOrDie(const string& filename,
   fclose(fptr);
 }
 
+void WriteArrayBinaryToFileOrDie(const string& filename,
+                                 const double* x,
+                                 const int size) {
+  CHECK_NOTNULL(x);
+  VLOG(2) << "Writing array to: " << filename;
+  FILE* fptr = fopen(filename.c_str(), "w");
+  CHECK_NOTNULL(fptr);
+  uint32_t header = __builtin_bswap32(1211214);
+  uint32_t s = __builtin_bswap32(size);
+  fwrite(&header, sizeof(header), 1, fptr);
+  fwrite(&s, sizeof(s), 1, fptr);
+  for(int i = 0; i < size; i++) {
+    uint64_t y = __builtin_bswap64((*(uint64_t*)&x[i]));
+    fwrite(&y, sizeof(uint64_t), 1, fptr);
+  }
+  fclose(fptr);
+}
+
 bool DumpLinearLeastSquaresProblemToTextFile(const string& filename_base,
                                              const SparseMatrix* A,
                                              const double* D,
@@ -723,18 +741,19 @@ bool DumpLinearLeastSquaresProblemToPETSc(const string& filename_base,
 
 
   if (D != NULL) {
-    string filename = filename_base + "_D.txt";
-    WriteArrayToFileOrDie(filename, D, A->num_cols());
+    string filename = filename_base + "_D.petsc";
+    WriteArrayBinaryToFileOrDie(filename, D, A->num_cols());
   }
 
   if (b != NULL) {
-    string filename = filename_base + "_b.txt";
-    WriteArrayToFileOrDie(filename, b, A->num_rows());
+    string filename = filename_base + "_b.petsc";
+    WriteArrayBinaryToFileOrDie(filename, b, A->num_rows());
+    WriteArrayToFileOrDie(filename_base + "_b.txt", b, A->num_rows());
   }
 
   if (x != NULL) {
-    string filename = filename_base + "_x.txt";
-    WriteArrayToFileOrDie(filename, x, A->num_cols());
+    string filename = filename_base + "_x.petsc";
+    WriteArrayBinaryToFileOrDie(filename, x, A->num_cols());
   }
 
   return true;

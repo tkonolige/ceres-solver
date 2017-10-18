@@ -34,6 +34,7 @@
 #include <ctime>
 #include <set>
 #include <vector>
+#include <iostream>
 
 #include "Eigen/Dense"
 #include "Eigen/SparseCore"
@@ -139,6 +140,8 @@ LinearSolver::Summary SchurComplementSolver::SolveImpl(
 
   std::fill(x, x + A->num_cols(), 0.0);
   event_logger.AddEvent("Setup");
+
+  std::cout << A->num_rows() << " " << A->num_cols() << " " << lhs_->num_cols() << std::endl;
 
   eliminator_->Eliminate(A, b, per_solve_options.D, lhs_.get(), rhs_.get());
   event_logger.AddEvent("Eliminate");

@@ -31,6 +31,7 @@
 #include "ceres/levenberg_marquardt_strategy.h"
 
 #include <cmath>
+#include <iostream>
 #include "Eigen/Core"
 #include "ceres/array_utils.h"
 #include "ceres/internal/eigen.h"
@@ -101,6 +102,21 @@ TrustRegionStrategy::Summary LevenbergMarquardtStrategy::ComputeStep(
   // the Jacobin is severly rank deficient and mu is too small.
   InvalidateArray(num_parameters, step);
 
+  if (per_solve_options.dump_format_type == CONSOLE ||
+      (per_solve_options.dump_format_type != CONSOLE &&
+       !per_solve_options.dump_filename_base.empty())) {
+    if (!DumpLinearLeastSquaresProblem(per_solve_options.dump_filename_base,
+                                       per_solve_options.dump_format_type,
+                                       jacobian,
+                                       solve_options.D,
+                                       residuals,
+                                       step,
+                                       0)) {
+      LOG(ERROR) << "Unable to dump trust region problem."
+                 << " Filename base: " << per_solve_options.dump_filename_base;
+    }
+  }
+
   // Instead of solving Jx = -r, solve Jy = r.
   // Then x can be found as x = -y, but the inputs jacobian and residuals
   // do not need to be modified.
@@ -121,20 +137,20 @@ TrustRegionStrategy::Summary LevenbergMarquardtStrategy::ComputeStep(
   }
   reuse_diagonal_ = true;
 
-  if (per_solve_options.dump_format_type == CONSOLE ||
-      (per_solve_options.dump_format_type != CONSOLE &&
-       !per_solve_options.dump_filename_base.empty())) {
-    if (!DumpLinearLeastSquaresProblem(per_solve_options.dump_filename_base,
-                                       per_solve_options.dump_format_type,
-                                       jacobian,
-                                       solve_options.D,
-                                       residuals,
-                                       step,
-                                       0)) {
-      LOG(ERROR) << "Unable to dump trust region problem."
-                 << " Filename base: " << per_solve_options.dump_filename_base;
-    }
-  }
+  // if (per_solve_options.dump_format_type == CONSOLE ||
+  //     (per_solve_options.dump_format_type != CONSOLE &&
+  //      !per_solve_options.dump_filename_base.empty())) {
+  //   if (!DumpLinearLeastSquaresProblem(per_solve_options.dump_filename_base,
+  //                                      per_solve_options.dump_format_type,
+  //                                      jacobian,
+  //                                      solve_options.D,
+  //                                      residuals,
+  //                                      step,
+  //                                      0)) {
+  //     LOG(ERROR) << "Unable to dump trust region problem."
+  //                << " Filename base: " << per_solve_options.dump_filename_base;
+  //   }
+  // }
 
 
   TrustRegionStrategy::Summary summary;
