@@ -671,7 +671,6 @@ bool DumpLinearLeastSquaresProblemToTextFile(const string& filename_base,
                                              const double* x,
                                              int num_eliminate_blocks) {
   CHECK_NOTNULL(A);
-  LOG(INFO) << "writing to: " << filename_base << "*";
 
   string matlab_script;
   StringAppendF(&matlab_script,
@@ -729,7 +728,6 @@ bool DumpLinearLeastSquaresProblemToPETSc(const string& filename_base,
                                           const double* x,
                                           int num_eliminate_blocks) {
   CHECK_NOTNULL(A);
-  LOG(INFO) << "writing to: " << filename_base << "*";
 
   {
     string filename = filename_base + "_A.petsc";
@@ -748,7 +746,6 @@ bool DumpLinearLeastSquaresProblemToPETSc(const string& filename_base,
   if (b != NULL) {
     string filename = filename_base + "_b.petsc";
     WriteArrayBinaryToFileOrDie(filename, b, A->num_rows());
-    WriteArrayToFileOrDie(filename_base + "_b.txt", b, A->num_rows());
   }
 
   if (x != NULL) {

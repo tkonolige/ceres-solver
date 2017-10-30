@@ -365,7 +365,8 @@ bool TrustRegionMinimizer::ComputeTrustRegionStep() {
         options_.trust_region_problem_dump_format_type;
     per_solve_options.dump_filename_base =
         JoinPath(options_.trust_region_problem_dump_directory,
-                 StringPrintf("ceres_solver_iteration_%03d",
+                 StringPrintf("%s_%03d",
+                              options_.trust_region_problem_dump_filename_base.c_str(),
                               iteration_summary_.iteration));
   }
 

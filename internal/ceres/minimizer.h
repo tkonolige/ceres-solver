@@ -77,6 +77,8 @@ class Minimizer {
           options.max_consecutive_nonmonotonic_steps;
       trust_region_problem_dump_directory =
           options.trust_region_problem_dump_directory;
+      trust_region_problem_dump_filename_base =
+          options.trust_region_problem_dump_filename_base;
       trust_region_minimizer_iterations_to_dump =
           options.trust_region_minimizer_iterations_to_dump;
       trust_region_problem_dump_format_type =
@@ -135,6 +137,7 @@ class Minimizer {
     std::vector<int> trust_region_minimizer_iterations_to_dump;
     DumpFormatType trust_region_problem_dump_format_type;
     std::string trust_region_problem_dump_directory;
+    std::string trust_region_problem_dump_filename_base;
     int max_num_consecutive_invalid_steps;
     double min_trust_region_radius;
     LineSearchDirectionType line_search_direction_type;

@@ -132,6 +132,7 @@ class CERES_EXPORT Solver {
       minimizer_progress_to_stdout = false;
       trust_region_problem_dump_directory = "/tmp";
       trust_region_problem_dump_format_type = TEXTFILE;
+      trust_region_problem_dump_filename_base = "ceres_solver_iteration";
       check_gradients = false;
       gradient_check_relative_precision = 1e-8;
       gradient_check_numeric_derivative_relative_step_size = 1e-6;
@@ -684,6 +685,7 @@ class CERES_EXPORT Solver {
     // non-empty and trust_region_problem_dump_format_type is not
     // CONSOLE.
     std::string trust_region_problem_dump_directory;
+    std::string trust_region_problem_dump_filename_base;
     DumpFormatType trust_region_problem_dump_format_type;
 
     // Finite differences options ----------------------------------------------
