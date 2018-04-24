@@ -651,14 +651,14 @@ void WriteArrayBinaryToFileOrDie(const string& filename,
                                  const int size) {
   CHECK_NOTNULL(x);
   VLOG(2) << "Writing array to: " << filename;
-  FILE* fptr = fopen(filename.c_str(), "w");
+  FILE* fptr = fopen(filename.c_str(), "wb");
   CHECK_NOTNULL(fptr);
-  uint32_t header = __builtin_bswap32(1211214);
-  uint32_t s = __builtin_bswap32(size);
+  int header = __builtin_bswap32(1211214);
+  int s = __builtin_bswap32(size);
   fwrite(&header, sizeof(header), 1, fptr);
   fwrite(&s, sizeof(s), 1, fptr);
   for(int i = 0; i < size; i++) {
-    uint64_t y = __builtin_bswap64((*(uint64_t*)&x[i]));
+    uint64_t y = __builtin_bswap64((uint64_t)x[i]);
     fwrite(&y, sizeof(uint64_t), 1, fptr);
   }
   fclose(fptr);
@@ -731,8 +731,9 @@ bool DumpLinearLeastSquaresProblemToPETSc(const string& filename_base,
 
   {
     string filename = filename_base + "_A.petsc";
-    FILE* fptr = fopen(filename.c_str(), "w");
+    FILE* fptr = fopen(filename.c_str(), "wb");
     CHECK_NOTNULL(fptr);
+    printf("writing to %s\n", filename.c_str());
     A->ToPETScFile(fptr);
     fclose(fptr);
   }

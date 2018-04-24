@@ -34,6 +34,7 @@
 #include <numeric>
 #include <vector>
 #include <cstdint>
+#include <arpa/inet.h>
 #include "ceres/crs_matrix.h"
 #include "ceres/internal/port.h"
 #include "ceres/random.h"
@@ -384,18 +385,19 @@ void CompressedRowSparseMatrix::ToTextFile(FILE* file) const {
 
 void CompressedRowSparseMatrix::ToPETScFile(FILE* file) const {
   CHECK_NOTNULL(file);
-  int magic = __builtin_bswap32(1211216);
+  int magic = htonl(1211216);
   fwrite(&magic, sizeof(int), 1, file);
-  int num_rows = __builtin_bswap32(num_rows_);
+  int num_rows = htonl(num_rows_);
   fwrite(&num_rows, sizeof(int), 1, file);
-  int num_cols = __builtin_bswap32(num_cols_);
+  int num_cols = htonl(num_cols_);
   fwrite(&num_cols, sizeof(int), 1, file);
-  int nnz = __builtin_bswap32(num_nonzeros());
+  int nnz = htonl(num_nonzeros());
   fwrite(&nnz, sizeof(int), 1, file);
 
   // write row lengths
+  assert(rows_[num_rows] == nnz);
   for (int r = 0; r < num_rows_; ++r) {
-    int row_size = __builtin_bswap32(rows_[r+1] - rows_[r]);
+    int row_size = htonl(rows_.at(r+1) - rows_.at(r));
     fwrite(&row_size, sizeof(int), 1, file);
   }
 
@@ -403,26 +405,17 @@ void CompressedRowSparseMatrix::ToPETScFile(FILE* file) const {
   assert(num_nonzeros() == values_.size());
 
   for(int i = 0; i < cols_.size(); i++) {
-    int x = __builtin_bswap32(cols_[i]);
+    int x = htonl(cols_[i]);
     fwrite(&x, sizeof(int), 1, file);
   }
+  uint64_t* v = (uint64_t*)values_.data();
   for(int i = 0; i < values_.size(); i++) {
-    uint64_t x = __builtin_bswap64((*(uint64_t*)&values_[i]));
-    // printf("%e %e\n", x, values_[i]);
-    // x = values_[i];
-    fwrite(&x, sizeof(double), 1, file);
+    uint64_t x = htonll(v[i]);
+    // printf("%llX %llX\n", x, v[i]);
+    // printf("%f\n", values_[i]);
+    // uint64_t x = values_[i];
+    fwrite(&x, sizeof(uint64_t), 1, file);
   }
-
-  // for (int r = 0; r < num_rows_; ++r) {
-  //   for (int idx = rows_[r]; idx < rows_[r + 1]; ++idx) {
-  //     fwrite(&cols_[idx], sizeof(int));
-  //   }
-  // }
-  // for (int r = 0; r < num_rows_; ++r) {
-  //   for (int idx = rows_[r]; idx < rows_[r + 1]; ++idx) {
-  //     fwrite(&values_[idx], sizeof(double));
-  //   }
-  // }
 }
 
 void CompressedRowSparseMatrix::ToCRSMatrix(CRSMatrix* matrix) const {

@@ -246,12 +246,40 @@ void BlockSparseMatrix::ToTextFile(FILE* file) const {
 }
 
 void BlockSparseMatrix::ToPETScFile(FILE* file) const {
-  TripletSparseMatrix triplets;
+  CHECK_NOTNULL(file);
+  TripletSparseMatrix triplets(num_rows(), num_cols(), num_nonzeros());
   ToTripletSparseMatrix(&triplets);
   CompressedRowSparseMatrix* crs = CompressedRowSparseMatrix::FromTripletSparseMatrix(triplets);
   crs->ToPETScFile(file);
   delete crs;
 }
+
+/*
+void BlockSparseMatrix::ToMTXFile(FILE* file) const {
+  CHECK_NOTNULL(file);
+  fprintf(file, "%%%%MatrixMarket matrix coordinate real general\n");
+  fprintf(file, "%d %d %d\n", num_rows(), num_cols(), num_nonzeros());
+  for (int i = 0; i < block_structure_->rows.size(); ++i) {
+    const int row_block_pos = block_structure_->rows[i].block.position;
+    const int row_block_size = block_structure_->rows[i].block.size;
+    const vector<Cell>& cells = block_structure_->rows[i].cells;
+    for (int j = 0; j < cells.size(); ++j) {
+      const int col_block_id = cells[j].block_id;
+      const int col_block_size = block_structure_->cols[col_block_id].size;
+      const int col_block_pos = block_structure_->cols[col_block_id].position;
+      int jac_pos = cells[j].position;
+      for (int r = 0; r < row_block_size; ++r) {
+        for (int c = 0; c < col_block_size; ++c) {
+          fprintf(file, "%d %d %f\n",
+                  row_block_pos + r+1,
+                  col_block_pos + c+1,
+                  values_[jac_pos++]);
+        }
+      }
+    }
+  }
+}
+*/
 
 BlockSparseMatrix* BlockSparseMatrix::CreateDiagonalMatrix(
     const double* diagonal, const std::vector<Block>& column_blocks) {
