@@ -477,10 +477,10 @@ class CERES_EXPORT Problem {
                 std::vector<double>* gradient,
                 CRSMatrix* jacobian);
 
+ std::unique_ptr<internal::ProblemImpl> problem_impl_;
  private:
   friend class Solver;
   friend class Covariance;
-  std::unique_ptr<internal::ProblemImpl> problem_impl_;
 };
 
 }  // namespace ceres

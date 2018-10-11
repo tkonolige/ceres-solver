@@ -271,7 +271,7 @@ endif (BUILD_SHARED_LIBS)
 # configured, not the (older) installed config.h.
 target_include_directories(ceres BEFORE PUBLIC
   $<BUILD_INTERFACE:${Ceres_BINARY_DIR}/config>)
-target_include_directories(ceres PRIVATE ${Ceres_SOURCE_DIR}/internal)
+target_include_directories(ceres PUBLIC $<BUILD_INTERFACE:${Ceres_SOURCE_DIR}/internal>)
 target_include_directories(ceres PUBLIC
   $<BUILD_INTERFACE:${Ceres_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
