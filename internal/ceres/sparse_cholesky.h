@@ -107,6 +107,8 @@ class SparseCholesky {
       double* solution,
       std::string* message);
 
+  virtual int num_nonzeros() const = 0;
+
 };
 
 class IterativeRefiner;
@@ -125,6 +127,7 @@ class RefinedSparseCholesky : public SparseCholesky {
   virtual LinearSolverTerminationType Solve(const double* rhs,
                                             double* solution,
                                             std::string* message);
+  int num_nonzeros() const final { return sparse_cholesky_->num_nonzeros() + lhs_->num_nonzeros(); }
 
  private:
   std::unique_ptr<SparseCholesky> sparse_cholesky_;

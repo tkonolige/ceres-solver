@@ -296,12 +296,17 @@ class SuiteSparseCholesky : public SparseCholesky {
   LinearSolverTerminationType Solve(const double* rhs,
                                     double* solution,
                                     std::string* message) final;
+  int num_nonzeros() const final {
+    return num_nonzeros_;
+  };
+
  private:
   SuiteSparseCholesky(const OrderingType ordering_type);
 
   const OrderingType ordering_type_;
   SuiteSparse ss_;
   cholmod_factor* factor_;
+  int num_nonzeros_;
 };
 
 }  // namespace internal

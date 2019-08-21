@@ -129,6 +129,7 @@ class ImplicitSchurComplement : public LinearOperator {
 
   int num_rows() const final { return A_->num_cols_f(); }
   int num_cols() const final { return A_->num_cols_f(); }
+  int num_nonzeros() const final { return A_->num_nonzeros_f()*4 + A_->num_nonzeros_e()*2 + block_diagonal_EtE_inverse()->num_nonzeros(); }
   const Vector& rhs()    const { return rhs_;             }
 
   const BlockSparseMatrix* block_diagonal_EtE_inverse() const {

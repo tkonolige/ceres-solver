@@ -64,6 +64,7 @@ class BlockJacobiPreconditioner : public BlockSparseMatrixPreconditioner {
   void RightMultiply(const double* x, double* y) const final;
   int num_rows() const final { return m_->num_rows(); }
   int num_cols() const final { return m_->num_rows(); }
+ int num_nonzeros() const final { return m_->num_nonzeros(); }
   const BlockRandomAccessDiagonalMatrix& matrix() const { return *m_; }
 
  private:

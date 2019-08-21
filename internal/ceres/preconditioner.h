@@ -140,6 +140,7 @@ class Preconditioner : public LinearOperator {
   int num_cols() const override {
     return num_rows();
   }
+  int num_nonzeros() const override = 0;
 };
 
 // This templated subclass of Preconditioner serves as a base class for
@@ -173,6 +174,7 @@ class SparseMatrixPreconditionerWrapper : public SparseMatrixPreconditioner {
   // Preconditioner interface
   virtual void RightMultiply(const double* x, double* y) const;
   virtual int num_rows() const;
+  int num_nonzeros() const final { return matrix_->num_nonzeros(); }
 
  private:
   virtual bool UpdateImpl(const SparseMatrix& A, const double* D);
