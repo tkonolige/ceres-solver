@@ -90,6 +90,7 @@ class LowRankInverseHessian : public LinearOperator {
   }
   virtual int num_rows() const { return num_parameters_; }
   virtual int num_cols() const { return num_parameters_; }
+  virtual int num_nonzeros() const { 2 * max_num_corrections_ * num_parameters_ + max_num_corrections_; }
 
  private:
   const int num_parameters_;

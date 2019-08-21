@@ -131,6 +131,10 @@ class EigenSparseCholeskyTemplate : public SparseCholesky {
     return Factorize(eigen_lhs, message);
   }
 
+  virtual int num_nonzeros() const {
+    return solver_.num_nonzeros();
+  }
+
  private:
   Eigen::Matrix<typename Solver::Scalar, Eigen::Dynamic, 1> values_,
       scalar_rhs_, scalar_solution_;

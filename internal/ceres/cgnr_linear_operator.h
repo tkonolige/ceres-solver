@@ -107,6 +107,7 @@ class CgnrLinearOperator : public LinearOperator {
 
   virtual int num_rows() const { return A_.num_cols(); }
   virtual int num_cols() const { return A_.num_cols(); }
+  virtual int num_nonzeros() const { return A_.num_nonzeros(); }
 
  private:
   const LinearOperator& A_;

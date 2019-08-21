@@ -62,6 +62,9 @@ class EigenSparseCholesky : public SparseCholesky {
   virtual LinearSolverTerminationType Solve(const double* rhs,
                                             double* solution,
                                             std::string* message) = 0;
+  virtual int num_nonzeros() const {
+    return solver_.num_nonzeros();
+  }
 };
 
 // Even though the input is double precision linear system, this class
@@ -80,6 +83,9 @@ class FloatEigenSparseCholesky : public SparseCholesky {
   virtual LinearSolverTerminationType Solve(const double* rhs,
                                             double* solution,
                                             std::string* message) = 0;
+  virtual int num_nonzeros() const {
+    return solver_.num_nonzeros();
+  }
 };
 
 }  // namespace internal

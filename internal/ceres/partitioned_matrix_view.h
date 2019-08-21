@@ -102,8 +102,11 @@ class PartitionedMatrixViewBase {
   virtual int num_col_blocks_f() const = 0;
   virtual int num_cols_e()       const = 0;
   virtual int num_cols_f()       const = 0;
+  virtual int num_nonzeros_e()   const = 0;
+  virtual int num_nonzeros_f()   const = 0;
   virtual int num_rows()         const = 0;
   virtual int num_cols()         const = 0;
+  virtual int num_nonzeros()     const = 0;
 
   static PartitionedMatrixViewBase* Create(const LinearSolver::Options& options,
                                            const BlockSparseMatrix& matrix);
@@ -127,12 +130,15 @@ class PartitionedMatrixView : public PartitionedMatrixViewBase {
   virtual BlockSparseMatrix* CreateBlockDiagonalFtF() const;
   virtual void UpdateBlockDiagonalEtE(BlockSparseMatrix* block_diagonal) const;
   virtual void UpdateBlockDiagonalFtF(BlockSparseMatrix* block_diagonal) const;
-  virtual int num_col_blocks_e() const { return num_col_blocks_e_;  }
-  virtual int num_col_blocks_f() const { return num_col_blocks_f_;  }
-  virtual int num_cols_e()       const { return num_cols_e_;        }
-  virtual int num_cols_f()       const { return num_cols_f_;        }
-  virtual int num_rows()         const { return matrix_.num_rows(); }
-  virtual int num_cols()         const { return matrix_.num_cols(); }
+  virtual int num_col_blocks_e() const { return num_col_blocks_e_;      }
+  virtual int num_col_blocks_f() const { return num_col_blocks_f_;      }
+  virtual int num_nonzeros_e()   const { return num_nonzeros_e_;        }
+  virtual int num_nonzeros_f()   const { return num_nonzeros_f_;        }
+  virtual int num_cols_e()       const { return num_cols_e_;            }
+  virtual int num_cols_f()       const { return num_cols_f_;            }
+  virtual int num_rows()         const { return matrix_.num_rows();     }
+  virtual int num_cols()         const { return matrix_.num_cols();     }
+  virtual int num_nonzeros()     const { return matrix_.num_nonzeros(); }
 
  private:
   BlockSparseMatrix* CreateBlockDiagonalMatrixLayout(int start_col_block,
@@ -144,6 +150,8 @@ class PartitionedMatrixView : public PartitionedMatrixViewBase {
   int num_col_blocks_f_;
   int num_cols_e_;
   int num_cols_f_;
+  int num_nonzeros_e_;
+  int num_nonzeros_f_;
 };
 
 }  // namespace internal

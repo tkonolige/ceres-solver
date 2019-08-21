@@ -84,6 +84,7 @@ class BlockRandomAccessSparseMatrixAdapter : public LinearOperator {
 
   virtual int num_rows() const { return m_.num_rows(); }
   virtual int num_cols() const { return m_.num_rows(); }
+  virtual int num_nonzeros() const { return m_.num_nonzeros(); }
 
  private:
   const BlockRandomAccessSparseMatrix& m_;
@@ -110,6 +111,7 @@ class BlockRandomAccessDiagonalMatrixAdapter : public LinearOperator {
 
   virtual int num_rows() const { return m_.num_rows(); }
   virtual int num_cols() const { return m_.num_rows(); }
+  virtual int num_nonzeros() const { return m_.num_nonzeros(); }
 
  private:
   const BlockRandomAccessDiagonalMatrix& m_;

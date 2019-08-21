@@ -78,6 +78,7 @@ class BlockRandomAccessDiagonalMatrix : public BlockRandomAccessMatrix {
   // Since the matrix is square, num_rows() == num_cols().
   virtual int num_rows() const { return tsm_->num_rows(); }
   virtual int num_cols() const { return tsm_->num_cols(); }
+  virtual int num_nonzeros() const { return tsm_->num_nonzeros(); }
 
   const TripletSparseMatrix* matrix() const { return tsm_.get(); }
   TripletSparseMatrix* mutable_matrix() { return tsm_.get(); }

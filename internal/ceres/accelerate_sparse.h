@@ -121,6 +121,9 @@ class AppleAccelerateCholesky : public SparseCholesky {
   virtual LinearSolverTerminationType Solve(const double* rhs,
                                             double* solution,
                                             std::string* message);
+  virtual int num_nonzeros() const {
+    return symbolic_factor_->factorSize_Double / sizeof(double);
+  }
 
  private:
   AppleAccelerateCholesky(const OrderingType ordering_type);
