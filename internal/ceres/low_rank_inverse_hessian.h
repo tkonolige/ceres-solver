@@ -38,6 +38,7 @@
 
 #include "ceres/internal/eigen.h"
 #include "ceres/linear_operator.h"
+#include "glog/logging.h"
 
 namespace ceres {
 namespace internal {

@@ -48,10 +48,12 @@
 #include "ceres/internal/eigen.h"
 #include "ceres/lapack.h"
 #include "ceres/linear_solver.h"
+#include "ceres/preconditioner.h"
 #include "ceres/sparse_cholesky.h"
 #include "ceres/triplet_sparse_matrix.h"
 #include "ceres/types.h"
 #include "ceres/wall_time.h"
+#include "ceres/visibility_based_preconditioner.h"
 
 namespace ceres {
 namespace internal {
@@ -148,7 +150,7 @@ LinearSolver::Summary SchurComplementSolver::SolveImpl(
 
   double* reduced_solution = x + A->num_cols() - lhs_->num_cols();
   const LinearSolver::Summary summary =
-      SolveReducedLinearSystem(per_solve_options, reduced_solution);
+      SolveReducedLinearSystem(A, per_solve_options, reduced_solution);
   event_logger.AddEvent("ReducedSolve");
 
   if (summary.termination_type == LINEAR_SOLVER_SUCCESS) {
@@ -182,6 +184,7 @@ void DenseSchurComplementSolver::InitStorage(
 // Eigen's Cholesky factorization.
 LinearSolver::Summary
 DenseSchurComplementSolver::SolveReducedLinearSystem(
+    const BlockSparseMatrix* A,
     const LinearSolver::PerSolveOptions& per_solve_options,
     double* solution) {
   LinearSolver::Summary summary;
@@ -309,9 +312,10 @@ void SparseSchurComplementSolver::InitStorage(
 }
 
 LinearSolver::Summary SparseSchurComplementSolver::SolveReducedLinearSystem(
-    const LinearSolver::PerSolveOptions& per_solve_options, double* solution) {
+    const BlockSparseMatrix* A, const LinearSolver::PerSolveOptions& per_solve_options,
+    double* solution) {
   if (options().type == ITERATIVE_SCHUR) {
-    return SolveReducedLinearSystemUsingConjugateGradients(per_solve_options,
+    return SolveReducedLinearSystemUsingConjugateGradients(A, per_solve_options,
                                                            solution);
   }
 
@@ -349,6 +353,7 @@ LinearSolver::Summary SparseSchurComplementSolver::SolveReducedLinearSystem(
 
 LinearSolver::Summary
 SparseSchurComplementSolver::SolveReducedLinearSystemUsingConjugateGradients(
+    const BlockSparseMatrix* A,
     const LinearSolver::PerSolveOptions& per_solve_options,
     double* solution) {
   CHECK(options().use_explicit_schur_complement);
@@ -364,37 +369,64 @@ SparseSchurComplementSolver::SolveReducedLinearSystemUsingConjugateGradients(
   }
 
   // Only SCHUR_JACOBI is supported over here right now.
-  CHECK_EQ(options().preconditioner_type, SCHUR_JACOBI);
+  // CHECK_EQ(options().preconditioner_type, SCHUR_JACOBI);
+  Preconditioner::Options preconditioner_options;
+  preconditioner_options.type = options().preconditioner_type;
+  preconditioner_options.visibility_clustering_type =
+    options().visibility_clustering_type;
+  preconditioner_options.sparse_linear_algebra_library_type =
+    options().sparse_linear_algebra_library_type;
+  preconditioner_options.num_threads = options().num_threads;
+  preconditioner_options.row_block_size = options().row_block_size;
+  preconditioner_options.e_block_size = options().e_block_size;
+  preconditioner_options.f_block_size = options().f_block_size;
+  preconditioner_options.elimination_groups = options().elimination_groups;
+  CHECK(options().context != NULL);
+  preconditioner_options.context = options().context;
 
-  if (preconditioner_.get() == NULL) {
-    preconditioner_.reset(new BlockRandomAccessDiagonalMatrix(blocks_));
+  switch (options().preconditioner_type) {
+    case JACOBI:
+      LOG(FATAL) << "JACOBI preconditioner not supported";
+      break;
+    case SCHUR_JACOBI:
+
+      // TODO: Refactor this into a create preconditioner and update preconditioner function
+      BlockRandomAccessSparseMatrix* sc =
+        down_cast<BlockRandomAccessSparseMatrix*>(
+            const_cast<BlockRandomAccessMatrix*>(lhs()));
+
+      // Extract block diagonal from the Schur complement to construct the
+      // schur_jacobi preconditioner.
+      for (int i = 0; i  < blocks_.size(); ++i) {
+        const int block_size = blocks_[i];
+
+        int sc_r, sc_c, sc_row_stride, sc_col_stride;
+        CellInfo* sc_cell_info =
+          sc->GetCell(i, i, &sc_r, &sc_c, &sc_row_stride, &sc_col_stride);
+        CHECK(sc_cell_info != nullptr);
+        MatrixRef sc_m(sc_cell_info->values, sc_row_stride, sc_col_stride);
+
+        int pre_r, pre_c, pre_row_stride, pre_col_stride;
+        CellInfo* pre_cell_info = preconditioner_->GetCell(
+            i, i, &pre_r, &pre_c, &pre_row_stride, &pre_col_stride);
+        CHECK(pre_cell_info != nullptr);
+        MatrixRef pre_m(pre_cell_info->values, pre_row_stride, pre_col_stride);
+
+        pre_m.block(pre_r, pre_c, block_size, block_size) =
+          sc_m.block(sc_r, sc_c, block_size, block_size);
+      }
+      preconditioner_->Invert();
+      preconditioner_.reset(new SparseMatrixPreconditionerWrapper(down_cast<const SparseMatrix*>(new BlockRandomAccessDiagonalMatrix(blocks_))));
+      break;
+    case CLUSTER_JACOBI:
+    case CLUSTER_TRIDIAGONAL:
+      preconditioner_.reset(new VisibilityBasedPreconditioner(
+            *A->block_structure(), preconditioner_options));
+      break;
+    default:
+      LOG(FATAL) << "Unknown Preconditioner Type";
   }
 
-  BlockRandomAccessSparseMatrix* sc =
-      down_cast<BlockRandomAccessSparseMatrix*>(
-          const_cast<BlockRandomAccessMatrix*>(lhs()));
-
-  // Extract block diagonal from the Schur complement to construct the
-  // schur_jacobi preconditioner.
-  for (int i = 0; i  < blocks_.size(); ++i) {
-    const int block_size = blocks_[i];
-
-    int sc_r, sc_c, sc_row_stride, sc_col_stride;
-    CellInfo* sc_cell_info =
-        sc->GetCell(i, i, &sc_r, &sc_c, &sc_row_stride, &sc_col_stride);
-    CHECK(sc_cell_info != nullptr);
-    MatrixRef sc_m(sc_cell_info->values, sc_row_stride, sc_col_stride);
-
-    int pre_r, pre_c, pre_row_stride, pre_col_stride;
-    CellInfo* pre_cell_info = preconditioner_->GetCell(
-        i, i, &pre_r, &pre_c, &pre_row_stride, &pre_col_stride);
-    CHECK(pre_cell_info != nullptr);
-    MatrixRef pre_m(pre_cell_info->values, pre_row_stride, pre_col_stride);
-
-    pre_m.block(pre_r, pre_c, block_size, block_size) =
-        sc_m.block(sc_r, sc_c, block_size, block_size);
-  }
-  preconditioner_->Invert();
 
   VectorRef(solution, num_rows).setZero();
 

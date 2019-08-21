@@ -40,6 +40,7 @@
 #include "ceres/partitioned_matrix_view.h"
 #include "ceres/internal/eigen.h"
 #include "ceres/types.h"
+#include "glog/logging.h"
 
 namespace ceres {
 namespace internal {

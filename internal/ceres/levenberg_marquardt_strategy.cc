@@ -95,7 +95,7 @@ TrustRegionStrategy::Summary LevenbergMarquardtStrategy::ComputeStep(
   // termination via the q_tolerance. As Nash and Sofer show,
   // r_tolerance based termination is essentially useless in
   // Truncated Newton methods.
-  solve_options.r_tolerance = -1.0;
+  solve_options.r_tolerance = 1e-8;
 
   // Invalidate the output array lm_step, so that we can detect if
   // the linear solver generated numerical garbage.  This is known

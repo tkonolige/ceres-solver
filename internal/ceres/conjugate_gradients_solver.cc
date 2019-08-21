@@ -76,6 +76,9 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
   summary.termination_type = LINEAR_SOLVER_NO_CONVERGENCE;
   summary.message = "Maximum number of iterations reached.";
   summary.num_iterations = 0;
+  // TODO: does not include updating residual
+  LOG(INFO) << per_solve_options.preconditioner->num_nonzeros() << " " <<  A->num_nonzeros();
+  summary.work_per_iteration = (per_solve_options.preconditioner->num_nonzeros() + A->num_nonzeros()) / double(A->num_nonzeros());
 
   const int num_cols = A->num_cols();
   VectorRef xref(x, num_cols);
@@ -99,6 +102,7 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
   tmp.setZero();
   A->RightMultiply(x, tmp.data());
   r = bref - tmp;
+  double norm_r_init = r.norm();
   double norm_r = r.norm();
   if (options_.min_num_iterations == 0 && norm_r <= tol_r) {
     summary.termination_type = LINEAR_SOLVER_SUCCESS;
@@ -209,8 +213,13 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
     //   124(1-2), 45-59, 2000.
     //
     const double zeta = summary.num_iterations * (Q1 - Q0) / Q1;
+
+    // LOG(INFO) << "norm x " << xref.norm() << " norm b " << bref.norm() << " norm r " << r.norm();
+    // LOG(INFO) << summary.num_iterations << " Qi " << Q1 << " Qi-1 " << Q0 << " zeta " << zeta;
+
     if (zeta < per_solve_options.q_tolerance &&
         summary.num_iterations >= options_.min_num_iterations) {
+      summary.relative_residual_norm = r.norm() / norm_r_init;
       summary.termination_type = LINEAR_SOLVER_SUCCESS;
       summary.message =
           StringPrintf("Iteration: %d Convergence: zeta = %e < %e. |r| = %e",
@@ -226,6 +235,7 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
     norm_r = r. norm();
     if (norm_r <= tol_r &&
         summary.num_iterations >= options_.min_num_iterations) {
+      summary.relative_residual_norm = r.norm() / norm_r_init;
       summary.termination_type = LINEAR_SOLVER_SUCCESS;
       summary.message =
           StringPrintf("Iteration: %d Convergence. |r| = %e <= %e.",
@@ -240,6 +250,7 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
     }
   }
 
+  LOG(INFO) << "WDA: " << -summary.work_per_iteration * summary.num_iterations / log10(summary.relative_residual_norm) << " RTOL: " << summary.relative_residual_norm << " ITERS: " << summary.num_iterations << " WORK: " << summary.work_per_iteration;
   return summary;
 }
 

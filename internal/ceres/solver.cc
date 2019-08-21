@@ -119,7 +119,6 @@ bool TrustRegionOptionsAreValid(const Solver::Options& options, string* error) {
   OPTION_GE(max_lm_diagonal, 0.0);
   OPTION_LE_OPTION(min_lm_diagonal, max_lm_diagonal);
   OPTION_GE(max_num_consecutive_invalid_steps, 0);
-  OPTION_GT(eta, 0.0);
   OPTION_GE(min_linear_solver_iterations, 0);
   OPTION_GE(max_linear_solver_iterations, 1);
   OPTION_LE_OPTION(min_linear_solver_iterations, max_linear_solver_iterations);
@@ -142,7 +141,9 @@ bool TrustRegionOptionsAreValid(const Solver::Options& options, string* error) {
 
   if (options.linear_solver_type == ITERATIVE_SCHUR &&
       options.use_explicit_schur_complement &&
-      options.preconditioner_type != SCHUR_JACOBI) {
+      !(options.preconditioner_type == SCHUR_JACOBI ||
+       options.preconditioner_type == CLUSTER_JACOBI
+      )) {
     *error =  "use_explicit_schur_complement only supports "
         "SCHUR_JACOBI as the preconditioner.";
     return false;

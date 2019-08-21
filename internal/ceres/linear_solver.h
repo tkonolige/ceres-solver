@@ -256,7 +256,9 @@ class LinearSolver {
   // let the summary object do the talking.
   struct Summary {
     double residual_norm = -1.0;
+    double relative_residual_norm = -1.0;
     int num_iterations = -1;
+    double work_per_iteration = -1.0;
     LinearSolverTerminationType termination_type = LINEAR_SOLVER_FAILURE;
     std::string message;
   };
