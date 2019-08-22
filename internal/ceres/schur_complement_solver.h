@@ -55,6 +55,7 @@ namespace internal {
 
 class BlockSparseMatrix;
 class SparseCholesky;
+class Preconditioner;
 
 // Base class for Schur complement based linear least squares
 // solvers. It assumes that the input linear system Ax = b can be
@@ -137,6 +138,7 @@ class SchurComplementSolver : public BlockSparseMatrixSolver {
  private:
   virtual void InitStorage(const CompressedRowBlockStructure* bs) = 0;
   virtual LinearSolver::Summary SolveReducedLinearSystem(
+      BlockSparseMatrix* A,
       const LinearSolver::PerSolveOptions& per_solve_options,
       double* solution) = 0;
 
@@ -160,6 +162,7 @@ class DenseSchurComplementSolver : public SchurComplementSolver {
  private:
   void InitStorage(const CompressedRowBlockStructure* bs) final;
   LinearSolver::Summary SolveReducedLinearSystem(
+      BlockSparseMatrix* A,
       const LinearSolver::PerSolveOptions& per_solve_options,
       double* solution) final;
 };
@@ -176,16 +179,18 @@ class SparseSchurComplementSolver : public SchurComplementSolver {
  private:
   void InitStorage(const CompressedRowBlockStructure* bs) final;
   LinearSolver::Summary SolveReducedLinearSystem(
+      BlockSparseMatrix* A,
       const LinearSolver::PerSolveOptions& per_solve_options,
       double* solution) final;
   LinearSolver::Summary SolveReducedLinearSystemUsingConjugateGradients(
+      BlockSparseMatrix* A,
       const LinearSolver::PerSolveOptions& per_solve_options,
       double* solution);
 
   // Size of the blocks in the Schur complement.
   std::vector<int> blocks_;
   std::unique_ptr<SparseCholesky> sparse_cholesky_;
-  std::unique_ptr<BlockRandomAccessDiagonalMatrix> preconditioner_;
+  std::unique_ptr<Preconditioner> preconditioner_;
 };
 
 }  // namespace internal

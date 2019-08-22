@@ -477,9 +477,6 @@ class CERES_EXPORT Solver {
     //
     // Enabling this option tells ITERATIVE_SCHUR to use an explicitly
     // computed Schur complement.
-    //
-    // NOTE: This option can only be used with the SCHUR_JACOBI
-    // preconditioner.
     bool use_explicit_schur_complement = false;
 
     // Sparse Cholesky factorization algorithms use a fill-reducing

@@ -132,6 +132,7 @@ set(CERES_INTERNAL_SRC
     sparse_matrix.cc
     sparse_cholesky.cc
     sparse_normal_cholesky_solver.cc
+    square_block_jacobi_preconditioner.cc
     subset_preconditioner.cc
     split.cc
     stringprintf.cc

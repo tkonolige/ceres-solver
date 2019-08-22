@@ -48,10 +48,13 @@
 #include "ceres/internal/eigen.h"
 #include "ceres/lapack.h"
 #include "ceres/linear_solver.h"
+#include "ceres/preconditioner.h"
 #include "ceres/sparse_cholesky.h"
+#include "ceres/square_block_jacobi_preconditioner.h"
 #include "ceres/triplet_sparse_matrix.h"
 #include "ceres/types.h"
 #include "ceres/wall_time.h"
+#include "ceres/visibility_based_preconditioner.h"
 
 namespace ceres {
 namespace internal {
@@ -161,7 +164,7 @@ LinearSolver::Summary SchurComplementSolver::SolveImpl(
 
   double* reduced_solution = x + A->num_cols() - lhs_->num_cols();
   const LinearSolver::Summary summary =
-      SolveReducedLinearSystem(per_solve_options, reduced_solution);
+      SolveReducedLinearSystem(A, per_solve_options, reduced_solution);
   event_logger.AddEvent("ReducedSolve");
 
   if (summary.termination_type == LINEAR_SOLVER_SUCCESS) {
@@ -192,6 +195,7 @@ void DenseSchurComplementSolver::InitStorage(
 // BlockRandomAccessDenseMatrix. The linear system is solved using
 // Eigen's Cholesky factorization.
 LinearSolver::Summary DenseSchurComplementSolver::SolveReducedLinearSystem(
+    BlockSparseMatrix* A,
     const LinearSolver::PerSolveOptions& per_solve_options, double* solution) {
   LinearSolver::Summary summary;
   summary.num_iterations = 0;
@@ -314,9 +318,10 @@ void SparseSchurComplementSolver::InitStorage(
 }
 
 LinearSolver::Summary SparseSchurComplementSolver::SolveReducedLinearSystem(
+    BlockSparseMatrix* A,
     const LinearSolver::PerSolveOptions& per_solve_options, double* solution) {
   if (options().type == ITERATIVE_SCHUR) {
-    return SolveReducedLinearSystemUsingConjugateGradients(per_solve_options,
+    return SolveReducedLinearSystemUsingConjugateGradients(A, per_solve_options,
                                                            solution);
   }
 
@@ -354,6 +359,7 @@ LinearSolver::Summary SparseSchurComplementSolver::SolveReducedLinearSystem(
 
 LinearSolver::Summary
 SparseSchurComplementSolver::SolveReducedLinearSystemUsingConjugateGradients(
+    BlockSparseMatrix* A,
     const LinearSolver::PerSolveOptions& per_solve_options, double* solution) {
   CHECK(options().use_explicit_schur_complement);
   const int num_rows = lhs()->num_rows();
@@ -367,44 +373,57 @@ SparseSchurComplementSolver::SolveReducedLinearSystemUsingConjugateGradients(
     return summary;
   }
 
-  // Only SCHUR_JACOBI is supported over here right now.
-  CHECK_EQ(options().preconditioner_type, SCHUR_JACOBI);
-
   if (preconditioner_.get() == NULL) {
-    preconditioner_.reset(new BlockRandomAccessDiagonalMatrix(blocks_));
+    Preconditioner::Options preconditioner_options;
+    preconditioner_options.type = options().preconditioner_type;
+    preconditioner_options.visibility_clustering_type =
+      options().visibility_clustering_type;
+    preconditioner_options.sparse_linear_algebra_library_type =
+      options().sparse_linear_algebra_library_type;
+    preconditioner_options.num_threads = options().num_threads;
+    preconditioner_options.row_block_size = options().row_block_size;
+    preconditioner_options.e_block_size = options().e_block_size;
+    preconditioner_options.f_block_size = options().f_block_size;
+    preconditioner_options.elimination_groups = options().elimination_groups;
+    CHECK(options().context != NULL);
+    preconditioner_options.context = options().context;
+
+    switch (options().preconditioner_type) {
+      case JACOBI:
+        LOG(FATAL) << "Cannot use JACOBI preconditioner with explicit schur complement. Use SCHUR_JACOBI instead.";
+        break;
+      case SCHUR_JACOBI:
+        preconditioner_.reset(new SquareBlockJacobiPreconditioner(blocks_));
+        break;
+      case CLUSTER_JACOBI:
+      case CLUSTER_TRIDIAGONAL:
+        preconditioner_.reset(new VisibilityBasedPreconditioner(
+              *A->block_structure(), preconditioner_options));
+        break;
+      default:
+        LOG(FATAL) << "Unknown Preconditioner Type";
+    }
   }
 
-  BlockRandomAccessSparseMatrix* sc = down_cast<BlockRandomAccessSparseMatrix*>(
-      const_cast<BlockRandomAccessMatrix*>(lhs()));
-
-  // Extract block diagonal from the Schur complement to construct the
-  // schur_jacobi preconditioner.
-  for (int i = 0; i < blocks_.size(); ++i) {
-    const int block_size = blocks_[i];
-
-    int sc_r, sc_c, sc_row_stride, sc_col_stride;
-    CellInfo* sc_cell_info =
-        sc->GetCell(i, i, &sc_r, &sc_c, &sc_row_stride, &sc_col_stride);
-    CHECK(sc_cell_info != nullptr);
-    MatrixRef sc_m(sc_cell_info->values, sc_row_stride, sc_col_stride);
-
-    int pre_r, pre_c, pre_row_stride, pre_col_stride;
-    CellInfo* pre_cell_info = preconditioner_->GetCell(
-        i, i, &pre_r, &pre_c, &pre_row_stride, &pre_col_stride);
-    CHECK(pre_cell_info != nullptr);
-    MatrixRef pre_m(pre_cell_info->values, pre_row_stride, pre_col_stride);
-
-    pre_m.block(pre_r, pre_c, block_size, block_size) =
-        sc_m.block(sc_r, sc_c, block_size, block_size);
+  switch (options().preconditioner_type) {
+    case JACOBI:
+      LOG(FATAL) << "Cannot use JACOBI preconditioner with explicit schur complement. Use SCHUR_JACOBI instead.";
+      break;
+    case SCHUR_JACOBI:
+      static_cast<SquareBlockJacobiPreconditioner*>(preconditioner_.get())->UpdateImpl(*down_cast<const BlockRandomAccessSparseMatrix*>(lhs()), NULL);
+      break;
+    case CLUSTER_JACOBI:
+    case CLUSTER_TRIDIAGONAL:
+      preconditioner_->Update(*A, per_solve_options.D);
+      break;
+    default:
+      LOG(FATAL) << "Unknown Preconditioner Type";
   }
-  preconditioner_->Invert();
 
   VectorRef(solution, num_rows).setZero();
 
   std::unique_ptr<LinearOperator> lhs_adapter(
-      new BlockRandomAccessSparseMatrixAdapter(*sc));
-  std::unique_ptr<LinearOperator> preconditioner_adapter(
-      new BlockRandomAccessDiagonalMatrixAdapter(*preconditioner_));
+      new BlockRandomAccessSparseMatrixAdapter(*down_cast<const BlockRandomAccessSparseMatrix*>(lhs())));
 
   LinearSolver::Options cg_options;
   cg_options.min_num_iterations = options().min_num_iterations;
@@ -414,7 +433,7 @@ SparseSchurComplementSolver::SolveReducedLinearSystemUsingConjugateGradients(
   LinearSolver::PerSolveOptions cg_per_solve_options;
   cg_per_solve_options.r_tolerance = per_solve_options.r_tolerance;
   cg_per_solve_options.q_tolerance = per_solve_options.q_tolerance;
-  cg_per_solve_options.preconditioner = preconditioner_adapter.get();
+  cg_per_solve_options.preconditioner = preconditioner_.get();
 
   return cg_solver.Solve(
       lhs_adapter.get(), rhs(), cg_per_solve_options, solution);
