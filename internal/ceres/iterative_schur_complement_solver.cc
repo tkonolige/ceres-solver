@@ -66,6 +66,7 @@ LinearSolver::Summary IterativeSchurComplementSolver::SolveImpl(
     const LinearSolver::PerSolveOptions& per_solve_options,
     double* x) {
   EventLogger event_logger("IterativeSchurComplementSolver::Solve");
+  const double setup_start_time = WallTimeInSeconds();
 
   CHECK(A->block_structure() != nullptr);
   const int num_eliminate_blocks = options_.elimination_groups[0];
@@ -117,6 +118,7 @@ LinearSolver::Summary IterativeSchurComplementSolver::SolveImpl(
     cg_per_solve_options.preconditioner = preconditioner_.get();
   }
 
+  const double setup_end_time = WallTimeInSeconds();
   event_logger.AddEvent("Setup");
   LinearSolver::Summary summary =
       cg_solver.Solve(schur_complement_.get(),
@@ -128,7 +130,10 @@ LinearSolver::Summary IterativeSchurComplementSolver::SolveImpl(
     schur_complement_->BackSubstitute(reduced_linear_system_solution_.data(),
                                       x);
   }
+  const double solve_end_time = WallTimeInSeconds();
   event_logger.AddEvent("Solve");
+  summary.setup_time = setup_end_time - setup_start_time;
+  summary.solve_time = solve_end_time - setup_end_time;
   return summary;
 }
 

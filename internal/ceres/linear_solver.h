@@ -258,6 +258,8 @@ class LinearSolver {
   struct Summary {
     double residual_norm = -1.0;
     int num_iterations = -1;
+    double setup_time = 0.0;
+    double solve_time = 0.0;
     LinearSolverTerminationType termination_type = LINEAR_SOLVER_FAILURE;
     std::string message;
   };

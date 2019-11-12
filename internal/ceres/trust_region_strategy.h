@@ -108,6 +108,9 @@ class TrustRegionStrategy {
     // unsuccessful step), then this would be zero.
     int num_iterations = -1;
 
+    double linear_solver_setup_time = 0.0;
+    double linear_solver_solve_time = 0.0;
+
     // Status of the linear solver used to solve the Newton system.
     LinearSolverTerminationType termination_type = LINEAR_SOLVER_FAILURE;
   };
