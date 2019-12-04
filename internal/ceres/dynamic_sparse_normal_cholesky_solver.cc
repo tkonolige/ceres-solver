@@ -61,7 +61,8 @@ LinearSolver::Summary DynamicSparseNormalCholeskySolver::SolveImpl(
     CompressedRowSparseMatrix* A,
     const double* b,
     const LinearSolver::PerSolveOptions& per_solve_options,
-    double* x) {
+    double* x,
+    const TrustRegionMinimizer* minimizer) {
   const int num_cols = A->num_cols();
   VectorRef(x, num_cols).setZero();
   A->LeftMultiply(b, x);

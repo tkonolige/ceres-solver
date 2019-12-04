@@ -93,7 +93,7 @@ class SchurJacobiPreconditioner : public BlockSparseMatrixPreconditioner {
 
  private:
   void InitEliminator(const CompressedRowBlockStructure& bs);
-  bool UpdateImpl(const BlockSparseMatrix& A, const double* D) final;
+  bool UpdateImpl(const BlockSparseMatrix& A, const double* D, const TrustRegionMinimizer* minimizer) final;
 
   Preconditioner::Options options_;
   std::unique_ptr<SchurEliminatorBase> eliminator_;

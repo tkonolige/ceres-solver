@@ -82,7 +82,7 @@ void SchurJacobiPreconditioner::InitEliminator(
 
 // Update the values of the preconditioner matrix and factorize it.
 bool SchurJacobiPreconditioner::UpdateImpl(const BlockSparseMatrix& A,
-                                           const double* D) {
+                                           const double* D, const TrustRegionMinimizer* minimizer) {
   const int num_rows = m_->num_rows();
   CHECK_GT(num_rows, 0);
 

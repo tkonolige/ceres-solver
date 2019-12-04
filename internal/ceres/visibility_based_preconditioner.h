@@ -146,7 +146,7 @@ class VisibilityBasedPreconditioner : public BlockSparseMatrixPreconditioner {
   friend class VisibilityBasedPreconditionerTest;
 
  private:
-  bool UpdateImpl(const BlockSparseMatrix& A, const double* D) final;
+  bool UpdateImpl(const BlockSparseMatrix& A, const double* D, const TrustRegionMinimizer* minimizer) final;
   void ComputeClusterJacobiSparsity(const CompressedRowBlockStructure& bs);
   void ComputeClusterTridiagonalSparsity(const CompressedRowBlockStructure& bs);
   void InitStorage(const CompressedRowBlockStructure& bs);

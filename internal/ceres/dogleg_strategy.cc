@@ -80,7 +80,8 @@ TrustRegionStrategy::Summary DoglegStrategy::ComputeStep(
     const TrustRegionStrategy::PerSolveOptions& per_solve_options,
     SparseMatrix* jacobian,
     const double* residuals,
-    double* step) {
+    double* step,
+    const TrustRegionMinimizer* minimizer) {
   CHECK(jacobian != nullptr);
   CHECK(residuals != nullptr);
   CHECK(step != nullptr);
@@ -131,7 +132,7 @@ TrustRegionStrategy::Summary DoglegStrategy::ComputeStep(
   ComputeCauchyPoint(jacobian);
 
   LinearSolver::Summary linear_solver_summary =
-      ComputeGaussNewtonStep(per_solve_options, jacobian, residuals);
+      ComputeGaussNewtonStep(per_solve_options, jacobian, residuals, minimizer);
 
   TrustRegionStrategy::Summary summary;
   summary.residual_norm = linear_solver_summary.residual_norm;
@@ -517,7 +518,8 @@ bool DoglegStrategy::FindMinimumOnTrustRegionBoundary(Vector2d* minimum) const {
 LinearSolver::Summary DoglegStrategy::ComputeGaussNewtonStep(
     const PerSolveOptions& per_solve_options,
     SparseMatrix* jacobian,
-    const double* residuals) {
+    const double* residuals,
+    const TrustRegionMinimizer* minimizer) {
   const int n = jacobian->num_cols();
   LinearSolver::Summary linear_solver_summary;
   linear_solver_summary.termination_type = LINEAR_SOLVER_FAILURE;
@@ -568,7 +570,8 @@ LinearSolver::Summary DoglegStrategy::ComputeGaussNewtonStep(
     linear_solver_summary = linear_solver_->Solve(jacobian,
                                                   residuals,
                                                   solve_options,
-                                                  gauss_newton_step_.data());
+                                                  gauss_newton_step_.data(),
+                                                  minimizer);
 
     if (per_solve_options.dump_format_type == CONSOLE ||
         (per_solve_options.dump_format_type != CONSOLE &&

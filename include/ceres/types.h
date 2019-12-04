@@ -135,6 +135,7 @@ enum PreconditionerType {
   // residual blocks approximate the non-linear least squares
   // problem.
   SUBSET,
+  JULIA_MULTIGRID,
 };
 
 enum VisibilityClusteringType {

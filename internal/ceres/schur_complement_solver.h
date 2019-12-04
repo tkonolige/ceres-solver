@@ -42,6 +42,7 @@
 #include "ceres/block_structure.h"
 #include "ceres/internal/port.h"
 #include "ceres/linear_solver.h"
+#include "ceres/preconditioner.h"
 #include "ceres/schur_eliminator.h"
 #include "ceres/types.h"
 
@@ -55,6 +56,7 @@ namespace internal {
 
 class BlockSparseMatrix;
 class SparseCholesky;
+class TrustRegionMinimizer;
 
 // Base class for Schur complement based linear least squares
 // solvers. It assumes that the input linear system Ax = b can be
@@ -124,7 +126,8 @@ class SchurComplementSolver : public BlockSparseMatrixSolver {
       BlockSparseMatrix* A,
       const double* b,
       const LinearSolver::PerSolveOptions& per_solve_options,
-      double* x) override;
+      double* x,
+      const TrustRegionMinimizer* minimizer) override;
 
  protected:
   const LinearSolver::Options& options() const { return options_; }
@@ -136,9 +139,11 @@ class SchurComplementSolver : public BlockSparseMatrixSolver {
 
  private:
   virtual void InitStorage(const CompressedRowBlockStructure* bs) = 0;
+  virtual void UpdatePreconditioner(const TrustRegionMinimizer* minimizer) = 0;
   virtual LinearSolver::Summary SolveReducedLinearSystem(
       const LinearSolver::PerSolveOptions& per_solve_options,
-      double* solution) = 0;
+      double* solution,
+      const TrustRegionMinimizer* minimizer) = 0;
 
   LinearSolver::Options options_;
 
@@ -159,9 +164,11 @@ class DenseSchurComplementSolver : public SchurComplementSolver {
 
  private:
   void InitStorage(const CompressedRowBlockStructure* bs) final;
+  void UpdatePreconditioner(const TrustRegionMinimizer* minimizer) final;
   LinearSolver::Summary SolveReducedLinearSystem(
       const LinearSolver::PerSolveOptions& per_solve_options,
-      double* solution) final;
+      double* solution,
+      const TrustRegionMinimizer* minimizer) final;
 };
 
 // Sparse Cholesky factorization based solver.
@@ -175,17 +182,20 @@ class SparseSchurComplementSolver : public SchurComplementSolver {
 
  private:
   void InitStorage(const CompressedRowBlockStructure* bs) final;
+  void UpdatePreconditioner(const TrustRegionMinimizer* minimizer) final;
   LinearSolver::Summary SolveReducedLinearSystem(
       const LinearSolver::PerSolveOptions& per_solve_options,
-      double* solution) final;
+      double* solution,
+      const TrustRegionMinimizer* minimizer) final;
   LinearSolver::Summary SolveReducedLinearSystemUsingConjugateGradients(
       const LinearSolver::PerSolveOptions& per_solve_options,
-      double* solution);
+      double* solution,
+      const TrustRegionMinimizer* minimizer);
 
   // Size of the blocks in the Schur complement.
   std::vector<int> blocks_;
   std::unique_ptr<SparseCholesky> sparse_cholesky_;
-  std::unique_ptr<BlockRandomAccessDiagonalMatrix> preconditioner_;
+  std::unique_ptr<Preconditioner> preconditioner_;
 };
 
 }  // namespace internal

@@ -108,6 +108,7 @@ set(CERES_INTERNAL_SRC
     loss_function.cc
     low_rank_inverse_hessian.cc
     minimizer.cc
+    multigrid.cc
     normal_prior.cc
     parallel_utils.cc
     parameter_block_ordering.cc
@@ -204,6 +205,13 @@ endif()
 
 if (LAPACK_FOUND)
   list(APPEND CERES_LIBRARY_PRIVATE_DEPENDENCIES ${LAPACK_LIBRARIES})
+endif ()
+
+if (Julia_FOUND)
+  list(APPEND CERES_LIBRARY_PRIVATE_DEPENDENCIES ${Julia_LIBRARIES})
+  if (Julia_DEFINITIONS)
+    add_definitions("${Julia_DEFINITIONS}")
+  endif()
 endif ()
 
 set(CERES_LIBRARY_SOURCE
@@ -334,6 +342,9 @@ if (GFLAGS AND NOT FOUND_INSTALLED_GFLAGS_CMAKE_CONFIGURATION)
   # exported target that already includes them.
   list(APPEND CERES_LIBRARY_PUBLIC_DEPENDENCIES_INCLUDE_DIRS
     ${GFLAGS_INCLUDE_DIRS})
+endif()
+if (Julia_FOUND)
+  list(APPEND CERES_LIBRARY_PRIVATE_DEPENDENCIES_INCLUDE_DIRS ${Julia_INCLUDE_DIRS})
 endif()
 # Add include locations for optional dependencies to the Ceres target without
 # duplication.

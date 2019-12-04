@@ -82,6 +82,7 @@ enum OrderingType {
 };
 
 class LinearOperator;
+class TrustRegionMinimizer;
 
 // Abstract base class for objects that implement algorithms for
 // solving linear systems
@@ -260,6 +261,7 @@ class LinearSolver {
     int num_iterations = -1;
     double setup_time = 0.0;
     double solve_time = 0.0;
+    double schur_time = 0.0;
     LinearSolverTerminationType termination_type = LINEAR_SOLVER_FAILURE;
     std::string message;
   };
@@ -278,7 +280,8 @@ class LinearSolver {
   virtual Summary Solve(LinearOperator* A,
                         const double* b,
                         const PerSolveOptions& per_solve_options,
-                        double* x) = 0;
+                        double* x,
+                        const TrustRegionMinimizer* minimizer) = 0;
 
   // This method returns copies instead of references so that the base
   // class implementation does not have to worry about life time
@@ -307,12 +310,13 @@ class TypedLinearSolver : public LinearSolver {
       LinearOperator* A,
       const double* b,
       const LinearSolver::PerSolveOptions& per_solve_options,
-      double* x) {
+      double* x,
+      const TrustRegionMinimizer* minimizer) {
     ScopedExecutionTimer total_time("LinearSolver::Solve", &execution_summary_);
     CHECK(A != nullptr);
     CHECK(b != nullptr);
     CHECK(x != nullptr);
-    return SolveImpl(down_cast<MatrixType*>(A), b, per_solve_options, x);
+    return SolveImpl(down_cast<MatrixType*>(A), b, per_solve_options, x, minimizer);
   }
 
   virtual std::map<std::string, CallStatistics> Statistics() const {
@@ -324,7 +328,8 @@ class TypedLinearSolver : public LinearSolver {
       MatrixType* A,
       const double* b,
       const LinearSolver::PerSolveOptions& per_solve_options,
-      double* x) = 0;
+      double* x,
+      const TrustRegionMinimizer* minimizer) = 0;
 
   ExecutionSummary execution_summary_;
 };

@@ -68,7 +68,8 @@ TrustRegionStrategy::Summary LevenbergMarquardtStrategy::ComputeStep(
     const TrustRegionStrategy::PerSolveOptions& per_solve_options,
     SparseMatrix* jacobian,
     const double* residuals,
-    double* step) {
+    double* step,
+    const TrustRegionMinimizer* minimizer) {
   CHECK(jacobian != nullptr);
   CHECK(residuals != nullptr);
   CHECK(step != nullptr);
@@ -91,11 +92,13 @@ TrustRegionStrategy::Summary LevenbergMarquardtStrategy::ComputeStep(
   LinearSolver::PerSolveOptions solve_options;
   solve_options.D = lm_diagonal_.data();
   solve_options.q_tolerance = per_solve_options.eta;
+  // solve_options.q_tolerance = -1.0;
   // Disable r_tolerance checking. Since we only care about
   // termination via the q_tolerance. As Nash and Sofer show,
   // r_tolerance based termination is essentially useless in
   // Truncated Newton methods.
   solve_options.r_tolerance = -1.0;
+  // solve_options.r_tolerance = 1e-4;
 
   // Invalidate the output array lm_step, so that we can detect if
   // the linear solver generated numerical garbage.  This is known
@@ -107,7 +110,7 @@ TrustRegionStrategy::Summary LevenbergMarquardtStrategy::ComputeStep(
   // Then x can be found as x = -y, but the inputs jacobian and residuals
   // do not need to be modified.
   LinearSolver::Summary linear_solver_summary =
-      linear_solver_->Solve(jacobian, residuals, solve_options, step);
+      linear_solver_->Solve(jacobian, residuals, solve_options, step, minimizer);
 
   if (linear_solver_summary.termination_type == LINEAR_SOLVER_FATAL_ERROR) {
     LOG(WARNING) << "Linear solver fatal error: "

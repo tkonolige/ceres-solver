@@ -53,7 +53,8 @@ class LevenbergMarquardtStrategy : public TrustRegionStrategy {
       const TrustRegionStrategy::PerSolveOptions& per_solve_options,
       SparseMatrix* jacobian,
       const double* residuals,
-      double* step) final;
+      double* step,
+      const TrustRegionMinimizer* minimizer) final;
   void StepAccepted(double step_quality) final;
   void StepRejected(double step_quality) final;
   void StepIsInvalid() final {

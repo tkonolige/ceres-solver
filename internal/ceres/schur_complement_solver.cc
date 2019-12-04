@@ -48,6 +48,7 @@
 #include "ceres/internal/eigen.h"
 #include "ceres/lapack.h"
 #include "ceres/linear_solver.h"
+#include "ceres/multigrid.h"
 #include "ceres/sparse_cholesky.h"
 #include "ceres/triplet_sparse_matrix.h"
 #include "ceres/types.h"
@@ -113,26 +114,80 @@ class BlockRandomAccessDiagonalMatrixAdapter : public LinearOperator {
   const BlockRandomAccessDiagonalMatrix& m_;
 };
 
+class BlockDiagonalPreconditionerAdapter :
+  public BlockSparseMatrixPreconditioner {
+  public:
+    explicit BlockDiagonalPreconditionerAdapter(
+        const std::vector<int>& blocks)
+      : m_(blocks), blocks_(blocks) {}
+
+    void RightMultiply(const double* x, double* y) const final {
+      m_.RightMultiply(x, y);
+    }
+
+    int num_rows() const final { return m_.num_rows(); }
+    int num_cols() const final { return m_.num_rows(); }
+
+    bool Update_(const BlockRandomAccessSparseMatrix& sc_,
+        const double* D, const TrustRegionMinimizer* minimizer) {
+      BlockRandomAccessSparseMatrix& sc = const_cast<BlockRandomAccessSparseMatrix&>(sc_);
+      // Extract block diagonal from the Schur complement to construct the
+      // schur_jacobi preconditioner.
+      for (int i = 0; i < blocks_.size(); ++i) {
+        const int block_size = blocks_[i];
+
+        int sc_r, sc_c, sc_row_stride, sc_col_stride;
+        CellInfo* sc_cell_info =
+          sc.GetCell(i, i, &sc_r, &sc_c, &sc_row_stride, &sc_col_stride);
+        CHECK(sc_cell_info != nullptr);
+        MatrixRef sc_m(sc_cell_info->values, sc_row_stride, sc_col_stride);
+
+        int pre_r, pre_c, pre_row_stride, pre_col_stride;
+        CellInfo* pre_cell_info = m_.GetCell(
+            i, i, &pre_r, &pre_c, &pre_row_stride, &pre_col_stride);
+        CHECK(pre_cell_info != nullptr);
+        MatrixRef pre_m(pre_cell_info->values, pre_row_stride, pre_col_stride);
+
+        pre_m.block(pre_r, pre_c, block_size, block_size) =
+          sc_m.block(sc_r, sc_c, block_size, block_size);
+      }
+      m_.Invert();
+
+      return true;
+    }
+
+  private:
+    bool UpdateImpl(const BlockSparseMatrix& sc_,
+        const double* D, const TrustRegionMinimizer* minimizer) {
+      return true;
+    }
+
+    BlockRandomAccessDiagonalMatrix m_;
+    const std::vector<int>& blocks_;
+};
+
 }  // namespace
 
 LinearSolver::Summary SchurComplementSolver::SolveImpl(
     BlockSparseMatrix* A,
     const double* b,
     const LinearSolver::PerSolveOptions& per_solve_options,
-    double* x) {
+    double* x,
+    const TrustRegionMinimizer* minimizer) {
   EventLogger event_logger("SchurComplementSolver::Solve");
+  const double setup_start_time = WallTimeInSeconds();
 
   const CompressedRowBlockStructure* bs = A->block_structure();
   if (eliminator_.get() == NULL) {
     const int num_eliminate_blocks = options_.elimination_groups[0];
     const int num_f_blocks = bs->cols.size() - num_eliminate_blocks;
 
-    InitStorage(bs);
     DetectStructure(*bs,
                     num_eliminate_blocks,
                     &options_.row_block_size,
                     &options_.e_block_size,
                     &options_.f_block_size);
+    InitStorage(bs);
 
     // For the special case of the static structure <2,3,6> with
     // exactly one f block use the SchurEliminatorForOneFBlock.
@@ -153,26 +208,43 @@ LinearSolver::Summary SchurComplementSolver::SolveImpl(
     eliminator_->Init(num_eliminate_blocks, kFullRankETE, bs);
   }
 
+
   std::fill(x, x + A->num_cols(), 0.0);
   event_logger.AddEvent("Setup");
+  const double setup_end_time = WallTimeInSeconds();
 
+  const double schur_start_time = WallTimeInSeconds();
   eliminator_->Eliminate(BlockSparseMatrixData(*A),
                          b,
                          per_solve_options.D,
                          lhs_.get(),
                          rhs_.get());
   event_logger.AddEvent("Eliminate");
+  const double schur_end_time = WallTimeInSeconds();
 
+  const double setup_start_time2 = WallTimeInSeconds();
+  UpdatePreconditioner(minimizer);
+  const double setup_end_time2 = WallTimeInSeconds();
+
+
+  const double solve_start_time = WallTimeInSeconds();
   double* reduced_solution = x + A->num_cols() - lhs_->num_cols();
-  const LinearSolver::Summary summary =
-      SolveReducedLinearSystem(per_solve_options, reduced_solution);
+  LinearSolver::Summary summary =
+      SolveReducedLinearSystem(per_solve_options, reduced_solution, minimizer);
   event_logger.AddEvent("ReducedSolve");
+  const double solve_end_time = WallTimeInSeconds();
 
+  const double schur_start_time2 = WallTimeInSeconds();
   if (summary.termination_type == LINEAR_SOLVER_SUCCESS) {
     eliminator_->BackSubstitute(
         BlockSparseMatrixData(*A), b, per_solve_options.D, reduced_solution, x);
     event_logger.AddEvent("BackSubstitute");
   }
+  const double schur_end_time2 = WallTimeInSeconds();
+
+  summary.setup_time = setup_end_time - setup_start_time + setup_end_time2 - setup_start_time2;
+  summary.solve_time = solve_end_time - solve_start_time;
+  summary.schur_time = schur_end_time - schur_start_time + schur_end_time2 - schur_start_time2;
 
   return summary;
 }
@@ -197,7 +269,8 @@ void DenseSchurComplementSolver::InitStorage(
 // BlockRandomAccessDenseMatrix. The linear system is solved using
 // Eigen's Cholesky factorization.
 LinearSolver::Summary DenseSchurComplementSolver::SolveReducedLinearSystem(
-    const LinearSolver::PerSolveOptions& per_solve_options, double* solution) {
+    const LinearSolver::PerSolveOptions& per_solve_options, double* solution,
+    const TrustRegionMinimizer* minimizer) {
   LinearSolver::Summary summary;
   summary.num_iterations = 0;
   summary.termination_type = LINEAR_SOLVER_SUCCESS;
@@ -237,6 +310,9 @@ LinearSolver::Summary DenseSchurComplementSolver::SolveReducedLinearSystem(
   return summary;
 }
 
+void DenseSchurComplementSolver::UpdatePreconditioner(const TrustRegionMinimizer* minimizer) {
+}
+
 SparseSchurComplementSolver::SparseSchurComplementSolver(
     const LinearSolver::Options& options)
     : SchurComplementSolver(options) {
@@ -251,6 +327,25 @@ SparseSchurComplementSolver::~SparseSchurComplementSolver() {}
 // initialize a BlockRandomAccessSparseMatrix object.
 void SparseSchurComplementSolver::InitStorage(
     const CompressedRowBlockStructure* bs) {
+  if (preconditioner_.get() == NULL && options().preconditioner_type == JULIA_MULTIGRID) {
+    Preconditioner::Options preconditioner_options;
+    preconditioner_options.type = options().preconditioner_type;
+    preconditioner_options.visibility_clustering_type =
+      options().visibility_clustering_type;
+    preconditioner_options.sparse_linear_algebra_library_type =
+      options().sparse_linear_algebra_library_type;
+    preconditioner_options.num_threads = options().num_threads;
+    preconditioner_options.row_block_size = options().row_block_size;
+    // preconditioner_options.e_block_size = options().e_block_size;
+    // preconditioner_options.f_block_size = options().f_block_size;
+    // e_block_size and f_block_size are not set unless we are using a direct solver
+    preconditioner_options.e_block_size = 3;
+    preconditioner_options.f_block_size = 9;
+    preconditioner_options.elimination_groups = options().elimination_groups;
+    preconditioner_.reset(new MultigridPreconditioner(*bs, preconditioner_options));
+  }
+
+
   const int num_eliminate_blocks = options().elimination_groups[0];
   const int num_col_blocks = bs->cols.size();
   const int num_row_blocks = bs->rows.size();
@@ -319,10 +414,11 @@ void SparseSchurComplementSolver::InitStorage(
 }
 
 LinearSolver::Summary SparseSchurComplementSolver::SolveReducedLinearSystem(
-    const LinearSolver::PerSolveOptions& per_solve_options, double* solution) {
+    const LinearSolver::PerSolveOptions& per_solve_options, double* solution,
+    const TrustRegionMinimizer* minimizer) {
   if (options().type == ITERATIVE_SCHUR) {
     return SolveReducedLinearSystemUsingConjugateGradients(per_solve_options,
-                                                           solution);
+                                                           solution, minimizer);
   }
 
   LinearSolver::Summary summary;
@@ -359,7 +455,7 @@ LinearSolver::Summary SparseSchurComplementSolver::SolveReducedLinearSystem(
 
 LinearSolver::Summary
 SparseSchurComplementSolver::SolveReducedLinearSystemUsingConjugateGradients(
-    const LinearSolver::PerSolveOptions& per_solve_options, double* solution) {
+    const LinearSolver::PerSolveOptions& per_solve_options, double* solution, const TrustRegionMinimizer* minimizer) {
   CHECK(options().use_explicit_schur_complement);
   const int num_rows = lhs()->num_rows();
   // The case where there are no f blocks, and the system is block
@@ -372,44 +468,10 @@ SparseSchurComplementSolver::SolveReducedLinearSystemUsingConjugateGradients(
     return summary;
   }
 
-  // Only SCHUR_JACOBI is supported over here right now.
-  CHECK_EQ(options().preconditioner_type, SCHUR_JACOBI);
-
-  if (preconditioner_.get() == NULL) {
-    preconditioner_.reset(new BlockRandomAccessDiagonalMatrix(blocks_));
-  }
-
   BlockRandomAccessSparseMatrix* sc = down_cast<BlockRandomAccessSparseMatrix*>(
       const_cast<BlockRandomAccessMatrix*>(lhs()));
-
-  // Extract block diagonal from the Schur complement to construct the
-  // schur_jacobi preconditioner.
-  for (int i = 0; i < blocks_.size(); ++i) {
-    const int block_size = blocks_[i];
-
-    int sc_r, sc_c, sc_row_stride, sc_col_stride;
-    CellInfo* sc_cell_info =
-        sc->GetCell(i, i, &sc_r, &sc_c, &sc_row_stride, &sc_col_stride);
-    CHECK(sc_cell_info != nullptr);
-    MatrixRef sc_m(sc_cell_info->values, sc_row_stride, sc_col_stride);
-
-    int pre_r, pre_c, pre_row_stride, pre_col_stride;
-    CellInfo* pre_cell_info = preconditioner_->GetCell(
-        i, i, &pre_r, &pre_c, &pre_row_stride, &pre_col_stride);
-    CHECK(pre_cell_info != nullptr);
-    MatrixRef pre_m(pre_cell_info->values, pre_row_stride, pre_col_stride);
-
-    pre_m.block(pre_r, pre_c, block_size, block_size) =
-        sc_m.block(sc_r, sc_c, block_size, block_size);
-  }
-  preconditioner_->Invert();
-
-  VectorRef(solution, num_rows).setZero();
-
   std::unique_ptr<LinearOperator> lhs_adapter(
       new BlockRandomAccessSparseMatrixAdapter(*sc));
-  std::unique_ptr<LinearOperator> preconditioner_adapter(
-      new BlockRandomAccessDiagonalMatrixAdapter(*preconditioner_));
 
   LinearSolver::Options cg_options;
   cg_options.min_num_iterations = options().min_num_iterations;
@@ -419,10 +481,37 @@ SparseSchurComplementSolver::SolveReducedLinearSystemUsingConjugateGradients(
   LinearSolver::PerSolveOptions cg_per_solve_options;
   cg_per_solve_options.r_tolerance = per_solve_options.r_tolerance;
   cg_per_solve_options.q_tolerance = per_solve_options.q_tolerance;
-  cg_per_solve_options.preconditioner = preconditioner_adapter.get();
+  cg_per_solve_options.preconditioner = preconditioner_.get();
 
   return cg_solver.Solve(
-      lhs_adapter.get(), rhs(), cg_per_solve_options, solution);
+      lhs_adapter.get(), rhs(), cg_per_solve_options, solution, minimizer);
+}
+
+void SparseSchurComplementSolver::UpdatePreconditioner(const TrustRegionMinimizer* minimizer) {
+  BlockRandomAccessSparseMatrix* sc = down_cast<BlockRandomAccessSparseMatrix*>(
+      const_cast<BlockRandomAccessMatrix*>(lhs()));
+
+  if(options().preconditioner_type == JULIA_MULTIGRID) {
+    const TripletSparseMatrix* tsm = sc->matrix();
+
+    std::unique_ptr<CompressedRowSparseMatrix> l;
+    l.reset(CompressedRowSparseMatrix::FromTripletSparseMatrix(*tsm));
+    l->set_storage_type(CompressedRowSparseMatrix::UNSYMMETRIC);
+
+    *l->mutable_col_blocks() = blocks_;
+    *l->mutable_row_blocks() = blocks_;
+
+    preconditioner_->Update(*l.get(), NULL, minimizer);
+  } else if(options().preconditioner_type == SCHUR_JACOBI) {
+    if (preconditioner_.get() == NULL) {
+      preconditioner_.reset(new BlockDiagonalPreconditionerAdapter(blocks_));
+    }
+    BlockDiagonalPreconditionerAdapter* prec =
+      down_cast<BlockDiagonalPreconditionerAdapter*>(preconditioner_.get());
+    prec->Update_(*sc, NULL, minimizer);
+  } else {
+    LOG(FATAL) << "Invalid preconditioner " << options().preconditioner_type;
+  }
 }
 
 }  // namespace internal

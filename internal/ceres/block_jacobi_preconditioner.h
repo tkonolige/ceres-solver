@@ -67,7 +67,7 @@ class BlockJacobiPreconditioner : public BlockSparseMatrixPreconditioner {
   const BlockRandomAccessDiagonalMatrix& matrix() const { return *m_; }
 
  private:
-  bool UpdateImpl(const BlockSparseMatrix& A, const double* D) final;
+  bool UpdateImpl(const BlockSparseMatrix& A, const double* D, const TrustRegionMinimizer* minimizer) final;
 
   std::unique_ptr<BlockRandomAccessDiagonalMatrix> m_;
 };

@@ -134,9 +134,9 @@ bool TrustRegionOptionsAreValid(const Solver::Options& options, string* error) {
 
   if (options.linear_solver_type == ITERATIVE_SCHUR &&
       options.use_explicit_schur_complement &&
-      options.preconditioner_type != SCHUR_JACOBI) {
+      (options.preconditioner_type != SCHUR_JACOBI && options.preconditioner_type != JULIA_MULTIGRID)) {
     *error =  "use_explicit_schur_complement only supports "
-        "SCHUR_JACOBI as the preconditioner.";
+        "SCHUR_JACOBI or JULIA_MULTIGRID as the preconditioner.";
     return false;
   }
 

@@ -512,7 +512,7 @@ bool ReorderProgramForSchurTypeLinearSolver(
   const int size_of_first_elimination_group =
       parameter_block_ordering->group_to_elements().begin()->second.size();
 
-  if (linear_solver_type == SPARSE_SCHUR) {
+  if (linear_solver_type == SPARSE_SCHUR || linear_solver_type == ITERATIVE_SCHUR) {
     if (sparse_linear_algebra_library_type == SUITE_SPARSE) {
       MaybeReorderSchurComplementColumnsUsingSuiteSparse(
           *parameter_block_ordering,

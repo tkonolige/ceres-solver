@@ -435,6 +435,8 @@ else (MINIGLOG)
   message("-- Found Google Log (glog)." ${GLOG_GFLAGS_DEPENDENCY_MESSAGE})
 endif (MINIGLOG)
 
+find_package(Julia)
+
 if (NOT SCHUR_SPECIALIZATIONS)
   list(APPEND CERES_COMPILE_OPTIONS CERES_RESTRICT_SCHUR_SPECIALIZATION)
   message("-- Disabling Schur specializations (faster compiles)")

@@ -57,7 +57,8 @@ SparseMatrixPreconditionerWrapper::~SparseMatrixPreconditionerWrapper() {
 }
 
 bool SparseMatrixPreconditionerWrapper::UpdateImpl(const SparseMatrix& A,
-                                                   const double* D) {
+                                                   const double* D,
+                                                   const TrustRegionMinimizer* minimizer) {
   return true;
 }
 

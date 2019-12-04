@@ -77,7 +77,7 @@ class SubsetPreconditioner : public BlockSparseMatrixPreconditioner {
   int num_cols() const final { return num_cols_; }
 
  private:
-  bool UpdateImpl(const BlockSparseMatrix& A, const double* D) final;
+  bool UpdateImpl(const BlockSparseMatrix& A, const double* D, const TrustRegionMinimizer* minimizer) final;
 
   const Preconditioner::Options options_;
   const int num_cols_;

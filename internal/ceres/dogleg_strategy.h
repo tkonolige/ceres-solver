@@ -61,7 +61,8 @@ class DoglegStrategy : public TrustRegionStrategy {
   Summary ComputeStep(const PerSolveOptions& per_solve_options,
                               SparseMatrix* jacobian,
                               const double* residuals,
-                              double* step) final;
+                              double* step,
+                              const TrustRegionMinimizer* minimizer) final;
   void StepAccepted(double step_quality) final;
   void StepRejected(double step_quality) final;
   void StepIsInvalid();
@@ -81,7 +82,8 @@ class DoglegStrategy : public TrustRegionStrategy {
   LinearSolver::Summary ComputeGaussNewtonStep(
       const PerSolveOptions& per_solve_options,
       SparseMatrix* jacobian,
-      const double* residuals);
+      const double* residuals,
+      const TrustRegionMinimizer* minimizer);
   void ComputeCauchyPoint(SparseMatrix* jacobian);
   void ComputeGradient(SparseMatrix* jacobian, const double* residuals);
   void ComputeTraditionalDoglegStep(double* step);

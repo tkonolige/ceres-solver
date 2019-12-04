@@ -383,7 +383,8 @@ bool TrustRegionMinimizer::ComputeTrustRegionStep() {
       strategy_->ComputeStep(per_solve_options,
                              jacobian_,
                              residuals_.data(),
-                             trust_region_step_.data());
+                             trust_region_step_.data(),
+                             this);
 
   if (strategy_summary.termination_type == LINEAR_SOLVER_FATAL_ERROR) {
     solver_summary_->message =

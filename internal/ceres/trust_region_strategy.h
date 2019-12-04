@@ -40,6 +40,7 @@ namespace internal {
 
 class LinearSolver;
 class SparseMatrix;
+class TrustRegionMinimizer;
 
 // Interface for classes implementing various trust region strategies
 // for nonlinear least squares problems.
@@ -119,7 +120,9 @@ class TrustRegionStrategy {
   virtual Summary ComputeStep(const PerSolveOptions& per_solve_options,
                               SparseMatrix* jacobian,
                               const double* residuals,
-                              double* step) = 0;
+                              double* step,
+                              const TrustRegionMinimizer* minimizer
+                              ) = 0;
 
   // Inform the strategy that the current step has been accepted, and
   // that the ratio of the decrease in the non-linear objective to the

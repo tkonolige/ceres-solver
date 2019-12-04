@@ -60,7 +60,8 @@ LinearSolver::Summary SparseNormalCholeskySolver::SolveImpl(
     BlockSparseMatrix* A,
     const double* b,
     const LinearSolver::PerSolveOptions& per_solve_options,
-    double* x) {
+    double* x,
+    const TrustRegionMinimizer* minimizer) {
   EventLogger event_logger("SparseNormalCholeskySolver::Solve");
   LinearSolver::Summary summary;
   summary.num_iterations = 1;

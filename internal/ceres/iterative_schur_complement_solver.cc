@@ -64,10 +64,11 @@ LinearSolver::Summary IterativeSchurComplementSolver::SolveImpl(
     BlockSparseMatrix* A,
     const double* b,
     const LinearSolver::PerSolveOptions& per_solve_options,
-    double* x) {
+    double* x,
+    const TrustRegionMinimizer* minimizer) {
   EventLogger event_logger("IterativeSchurComplementSolver::Solve");
-  const double setup_start_time = WallTimeInSeconds();
 
+  const double schur_start_time = WallTimeInSeconds();
   CHECK(A->block_structure() != nullptr);
   const int num_eliminate_blocks = options_.elimination_groups[0];
   // Initialize a ImplicitSchurComplement object.
@@ -95,6 +96,7 @@ LinearSolver::Summary IterativeSchurComplementSolver::SolveImpl(
   // Initialize the solution to the Schur complement system to zero.
   reduced_linear_system_solution_.resize(schur_complement_->num_rows());
   reduced_linear_system_solution_.setZero();
+  const double schur_end_time = WallTimeInSeconds();
 
   LinearSolver::Options cg_options;
   cg_options.min_num_iterations = options_.min_num_iterations;
@@ -105,9 +107,10 @@ LinearSolver::Summary IterativeSchurComplementSolver::SolveImpl(
   cg_per_solve_options.r_tolerance = per_solve_options.r_tolerance;
   cg_per_solve_options.q_tolerance = per_solve_options.q_tolerance;
 
+  const double setup_start_time = WallTimeInSeconds();
   CreatePreconditioner(A);
   if (preconditioner_.get() != NULL) {
-    if (!preconditioner_->Update(*A, per_solve_options.D)) {
+    if (!preconditioner_->Update(*A, per_solve_options.D, minimizer)) {
       LinearSolver::Summary summary;
       summary.num_iterations = 0;
       summary.termination_type = LINEAR_SOLVER_FAILURE;
@@ -118,13 +121,16 @@ LinearSolver::Summary IterativeSchurComplementSolver::SolveImpl(
     cg_per_solve_options.preconditioner = preconditioner_.get();
   }
 
-  const double setup_end_time = WallTimeInSeconds();
   event_logger.AddEvent("Setup");
+  const double setup_end_time = WallTimeInSeconds();
+
+  const double solve_start_time = WallTimeInSeconds();
   LinearSolver::Summary summary =
       cg_solver.Solve(schur_complement_.get(),
                       schur_complement_->rhs().data(),
                       cg_per_solve_options,
-                      reduced_linear_system_solution_.data());
+                      reduced_linear_system_solution_.data(),
+                      minimizer);
   if (summary.termination_type != LINEAR_SOLVER_FAILURE &&
       summary.termination_type != LINEAR_SOLVER_FATAL_ERROR) {
     schur_complement_->BackSubstitute(reduced_linear_system_solution_.data(),
@@ -133,7 +139,8 @@ LinearSolver::Summary IterativeSchurComplementSolver::SolveImpl(
   const double solve_end_time = WallTimeInSeconds();
   event_logger.AddEvent("Solve");
   summary.setup_time = setup_end_time - setup_start_time;
-  summary.solve_time = solve_end_time - setup_end_time;
+  summary.solve_time = solve_end_time - solve_start_time;
+  summary.schur_time = schur_end_time - schur_start_time;
   return summary;
 }
 

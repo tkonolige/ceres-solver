@@ -82,7 +82,8 @@ class DenseNormalCholeskySolver: public DenseSparseMatrixSolver {
       DenseSparseMatrix* A,
       const double* b,
       const LinearSolver::PerSolveOptions& per_solve_options,
-      double* x) final;
+      double* x,
+      const TrustRegionMinimizer* minimizer) final;
 
   LinearSolver::Summary SolveUsingLAPACK(
       DenseSparseMatrix* A,

@@ -53,7 +53,8 @@ BlockJacobiPreconditioner::BlockJacobiPreconditioner(
 BlockJacobiPreconditioner::~BlockJacobiPreconditioner() {}
 
 bool BlockJacobiPreconditioner::UpdateImpl(const BlockSparseMatrix& A,
-                                           const double* D) {
+                                           const double* D,
+                                           const TrustRegionMinimizer* minimizer) {
   const CompressedRowBlockStructure* bs = A.block_structure();
   const double* values = A.values();
   m_->SetZero();

@@ -62,7 +62,8 @@ class SparseNormalCholeskySolver : public BlockSparseMatrixSolver {
       BlockSparseMatrix* A,
       const double* b,
       const LinearSolver::PerSolveOptions& options,
-      double* x) final;
+      double* x,
+      const TrustRegionMinimizer* minimizer) final;
 
   const LinearSolver::Options options_;
   Vector rhs_;

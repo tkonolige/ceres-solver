@@ -66,7 +66,8 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
     LinearOperator* A,
     const double* b,
     const LinearSolver::PerSolveOptions& per_solve_options,
-    double* x) {
+    double* x,
+    const TrustRegionMinimizer* minimizer) {
   CHECK(A != nullptr);
   CHECK(x != nullptr);
   CHECK(b != nullptr);

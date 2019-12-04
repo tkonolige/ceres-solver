@@ -39,6 +39,7 @@ namespace ceres {
 namespace internal {
 
 class DenseSparseMatrix;
+class TrustRegionMinimizer;
 
 // This class implements the LinearSolver interface for solving
 // rectangular/unsymmetric (well constrained) linear systems of the
@@ -87,7 +88,8 @@ class DenseQRSolver: public DenseSparseMatrixSolver {
       DenseSparseMatrix* A,
       const double* b,
       const LinearSolver::PerSolveOptions& per_solve_options,
-      double* x) final;
+      double* x,
+      const TrustRegionMinimizer* minimizer) final;
 
   LinearSolver::Summary SolveUsingEigen(
       DenseSparseMatrix* A,

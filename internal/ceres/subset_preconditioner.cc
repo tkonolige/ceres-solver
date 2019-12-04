@@ -65,7 +65,8 @@ void SubsetPreconditioner::RightMultiply(const double* x, double* y) const {
 }
 
 bool SubsetPreconditioner::UpdateImpl(const BlockSparseMatrix& A,
-                                      const double* D) {
+                                      const double* D,
+                                      const TrustRegionMinimizer* minimizer) {
   BlockSparseMatrix* m = const_cast<BlockSparseMatrix*>(&A);
   const CompressedRowBlockStructure* bs = m->block_structure();
 

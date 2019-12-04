@@ -60,7 +60,8 @@ LinearSolver::Summary CgnrSolver::SolveImpl(
     BlockSparseMatrix* A,
     const double* b,
     const LinearSolver::PerSolveOptions& per_solve_options,
-    double* x) {
+    double* x,
+    const TrustRegionMinimizer* minimizer) {
   EventLogger event_logger("CgnrSolver::Solve");
 
   // Form z = Atb.
@@ -87,7 +88,7 @@ LinearSolver::Summary CgnrSolver::SolveImpl(
   }
 
   if (preconditioner_) {
-    preconditioner_->Update(*A, per_solve_options.D);
+    preconditioner_->Update(*A, per_solve_options.D, minimizer);
   }
 
   LinearSolver::PerSolveOptions cg_per_solve_options = per_solve_options;
@@ -100,7 +101,7 @@ LinearSolver::Summary CgnrSolver::SolveImpl(
 
   ConjugateGradientsSolver conjugate_gradient_solver(options_);
   LinearSolver::Summary summary =
-      conjugate_gradient_solver.Solve(&lhs, z.data(), cg_per_solve_options, x);
+      conjugate_gradient_solver.Solve(&lhs, z.data(), cg_per_solve_options, x, minimizer);
   event_logger.AddEvent("Solve");
   return summary;
 }

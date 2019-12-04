@@ -51,7 +51,8 @@ LinearSolver::Summary DenseQRSolver::SolveImpl(
     DenseSparseMatrix* A,
     const double* b,
     const LinearSolver::PerSolveOptions& per_solve_options,
-    double* x) {
+    double* x,
+    const TrustRegionMinimizer* minimizer) {
   if (options_.dense_linear_algebra_library_type == EIGEN) {
     return SolveUsingEigen(A, b, per_solve_options, x);
   } else {
