@@ -72,7 +72,7 @@ namespace internal {
       colptr.push_back(rows.size() + 1);
     }
 
-    // TODO: make sure this is done once
+    // TODO: make sure this is done only once
     jl_init();
     eval_string("import bamg");
     eval_string("import LinearAlgebra");
@@ -85,12 +85,10 @@ namespace internal {
 
   bool MultigridPreconditioner::UpdateImpl(const CompressedRowSparseMatrix& A, const double* D, const TrustRegionMinimizer* minimizer) {
     auto update = get_function("update!", "bamg");
-    CRSMatrix crs;
-    A.ToCRSMatrix(&crs);
     jl_value_t* args[6] = { mg_
-                          , wrap_array(crs.rows)
-                          , wrap_array(crs.cols)
-                          , wrap_array(crs.values)
+                          , wrap_array(A.rows(), A.num_rows()+1)
+                          , wrap_array(A.cols(), A.num_nonzeros())
+                          , wrap_array(A.values(), A.num_nonzeros())
                           , wrap_array(minimizer->jacobian_scaling_.data() + options_.elimination_groups[0]*options_.e_block_size, options_.elimination_groups[1]*options_.f_block_size)
                           , wrap_array(minimizer->x_.data() + options_.elimination_groups[0]*options_.e_block_size, options_.elimination_groups[1]*options_.f_block_size)
                           };
