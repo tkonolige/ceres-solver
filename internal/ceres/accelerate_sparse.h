@@ -123,7 +123,7 @@ class AppleAccelerateCholesky : public SparseCholesky {
   LinearSolverTerminationType Solve(const double* rhs,
                                     double* solution,
                                     std::string* message) final ;
-  int num_nonzeros() const final {
+  int64_t num_nonzeros() const final {
     return symbolic_factor_->factorSize_Double / sizeof(double);
   }
 

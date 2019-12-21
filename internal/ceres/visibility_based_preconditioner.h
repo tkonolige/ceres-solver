@@ -142,7 +142,7 @@ class VisibilityBasedPreconditioner : public BlockSparseMatrixPreconditioner {
   // Preconditioner interface
   void RightMultiply(const double* x, double* y) const final;
   virtual int num_rows() const;
-  virtual int num_nonzeros() const { return sparse_cholesky_->num_nonzeros() * 2; }
+  virtual int64_t num_nonzeros() const { return sparse_cholesky_->num_nonzeros() * 2; }
 
   friend class VisibilityBasedPreconditionerTest;
 

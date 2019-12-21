@@ -107,7 +107,7 @@ class CgnrLinearOperator : public LinearOperator {
 
   int num_rows() const final { return A_.num_cols(); }
   int num_cols() const final { return A_.num_cols(); }
-  int num_nonzeros() const final { return A_.num_nonzeros(); }
+  int64_t num_nonzeros() const final { return A_.num_nonzeros(); }
 
  private:
   const LinearOperator& A_;

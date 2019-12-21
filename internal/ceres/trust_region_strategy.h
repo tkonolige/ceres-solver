@@ -111,6 +111,7 @@ class TrustRegionStrategy {
 
     double linear_solver_setup_time = 0.0;
     double linear_solver_solve_time = 0.0;
+    int64_t flops = 0;
 
     // Status of the linear solver used to solve the Newton system.
     LinearSolverTerminationType termination_type = LINEAR_SOLVER_FAILURE;

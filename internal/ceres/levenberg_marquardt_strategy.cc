@@ -148,6 +148,7 @@ TrustRegionStrategy::Summary LevenbergMarquardtStrategy::ComputeStep(
   summary.termination_type = linear_solver_summary.termination_type;
   summary.linear_solver_setup_time = linear_solver_summary.setup_time;
   summary.linear_solver_solve_time = linear_solver_summary.solve_time;
+  summary.flops = linear_solver_summary.flops;
   return summary;
 }
 

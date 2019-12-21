@@ -132,7 +132,7 @@ class EigenSparseCholeskyTemplate : public SparseCholesky {
     return Factorize(eigen_lhs, message);
   }
 
-  int num_nonzeros() const {
+  int64_t num_nonzeros() const {
     LOG(FATAL) << "Unimplemented";
     return -1;
   }
@@ -176,7 +176,7 @@ std::unique_ptr<SparseCholesky> EigenSparseCholesky::Create(
 
 EigenSparseCholesky::~EigenSparseCholesky() {}
 
-int EigenSparseCholesky::num_nonzeros() const { LOG(FATAL) << "Unimplemented"; return -1;}
+int64_t EigenSparseCholesky::num_nonzeros() const { LOG(FATAL) << "Unimplemented"; return -1;}
 
 std::unique_ptr<SparseCholesky> FloatEigenSparseCholesky::Create(
     const OrderingType ordering_type) {
@@ -209,7 +209,7 @@ std::unique_ptr<SparseCholesky> FloatEigenSparseCholesky::Create(
 
 FloatEigenSparseCholesky::~FloatEigenSparseCholesky() {}
 
-int FloatEigenSparseCholesky::num_nonzeros() const { LOG(FATAL) << "Unimplemented"; return -1;}
+int64_t FloatEigenSparseCholesky::num_nonzeros() const { LOG(FATAL) << "Unimplemented"; return -1;}
 
 
 }  // namespace internal

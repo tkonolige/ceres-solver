@@ -16,6 +16,7 @@ namespace internal {
 
       void RightMultiply(const double* x, double* y) const final;
       int num_rows() const final;
+      int64_t num_nonzeros() const final;
 
     private:
       bool UpdateImpl(const CompressedRowSparseMatrix& A, const double* D, const TrustRegionMinimizer* minimizer) final;

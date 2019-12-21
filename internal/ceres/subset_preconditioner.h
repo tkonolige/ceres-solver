@@ -75,7 +75,7 @@ class SubsetPreconditioner : public BlockSparseMatrixPreconditioner {
   void RightMultiply(const double* x, double* y) const final;
   int num_rows() const final { return num_cols_; }
   int num_cols() const final { return num_cols_; }
-  int num_nonzeros() const final;
+  int64_t num_nonzeros() const final;
 
  private:
   bool UpdateImpl(const BlockSparseMatrix& A, const double* D, const TrustRegionMinimizer* minimizer) final;

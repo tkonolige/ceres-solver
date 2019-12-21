@@ -151,7 +151,7 @@ class CXSparseCholesky : public SparseCholesky {
   LinearSolverTerminationType Solve(const double* rhs,
                                     double* solution,
                                     std::string* message) final;
-  int num_nonzeros() const final { return symbolic_factor_->lnz * 2; };
+  int64_t num_nonzeros() const final { return symbolic_factor_->lnz * 2; };
 
  private:
   CXSparseCholesky(const OrderingType ordering_type);

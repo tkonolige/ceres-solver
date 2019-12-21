@@ -107,5 +107,16 @@ namespace internal {
     return num_rows_;
   }
 
+  int64_t MultigridPreconditioner::num_nonzeros() const {
+    auto wrk = get_function("flops", "bamg");
+    auto w = jl_call1(wrk, mg_);
+    check_error();
+    if (jl_typeis(w, jl_int64_type)) {
+      return jl_unbox_int64(w);
+    } else {
+      throw(std::runtime_error("Could not calculate nnz"));
+    }
+  }
+
 }
 }

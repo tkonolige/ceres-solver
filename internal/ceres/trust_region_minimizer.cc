@@ -399,6 +399,7 @@ bool TrustRegionMinimizer::ComputeTrustRegionStep() {
   iteration_summary_.linear_solver_iterations = strategy_summary.num_iterations;
   iteration_summary_.step_solver_setup_time_in_seconds = strategy_summary.linear_solver_setup_time;
   iteration_summary_.step_solver_solve_time_in_seconds = strategy_summary.linear_solver_solve_time;
+  iteration_summary_.flops = strategy_summary.flops;
 
   if (strategy_summary.termination_type == LINEAR_SOLVER_FAILURE) {
     return true;

@@ -63,6 +63,7 @@ struct CERES_EXPORT IterationSummary {
         step_solver_time_in_seconds(0.0),
         step_solver_setup_time_in_seconds(0.0),
         step_solver_solve_time_in_seconds(0.0),
+        flops(0),
         cumulative_time_in_seconds(0.0) {}
 
   // Current iteration number.
@@ -157,6 +158,9 @@ struct CERES_EXPORT IterationSummary {
 
   // Time (in seconds) spent inside the trust region step solver solve.
   double step_solver_solve_time_in_seconds;
+
+  // Approximate number of floating point operations
+  int64_t flops;
 
   // Time (in seconds) since the user called Solve().
   double cumulative_time_in_seconds;

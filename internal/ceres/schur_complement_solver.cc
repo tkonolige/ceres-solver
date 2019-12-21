@@ -84,7 +84,7 @@ class BlockRandomAccessSparseMatrixAdapter : public LinearOperator {
 
   int num_rows() const final { return m_.num_rows(); }
   int num_cols() const final { return m_.num_rows(); }
-  int num_nonzeros() const final { return m_.num_nonzeros(); }
+  int64_t num_nonzeros() const final { return m_.num_nonzeros(); }
 
  private:
   const BlockRandomAccessSparseMatrix& m_;
@@ -110,7 +110,7 @@ class BlockRandomAccessDiagonalMatrixAdapter : public LinearOperator {
 
   int num_rows() const final { return m_.num_rows(); }
   int num_cols() const final { return m_.num_rows(); }
-  int num_nonzeros() const final { return m_.num_nonzeros(); }
+  int64_t num_nonzeros() const final { return m_.num_nonzeros(); }
 
  private:
   const BlockRandomAccessDiagonalMatrix& m_;
@@ -129,6 +129,7 @@ class BlockDiagonalPreconditionerAdapter :
 
     int num_rows() const final { return m_.num_rows(); }
     int num_cols() const final { return m_.num_rows(); }
+    int64_t num_nonzeros() const final { return m_.num_nonzeros(); }
 
     bool Update_(const BlockRandomAccessSparseMatrix& sc_,
         const double* D, const TrustRegionMinimizer* minimizer) {

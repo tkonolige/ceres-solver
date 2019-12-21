@@ -262,6 +262,7 @@ class LinearSolver {
     double setup_time = 0.0;
     double solve_time = 0.0;
     double schur_time = 0.0;
+    int64_t flops = 0.0;
     LinearSolverTerminationType termination_type = LINEAR_SOLVER_FAILURE;
     std::string message;
   };

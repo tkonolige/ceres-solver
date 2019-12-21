@@ -114,7 +114,7 @@ bool SubsetPreconditioner::UpdateImpl(const BlockSparseMatrix& A,
   return true;
 }
 
-int SubsetPreconditioner::num_nonzeros() const {
+int64_t SubsetPreconditioner::num_nonzeros() const {
   return sparse_cholesky_->num_nonzeros();
 }
 
