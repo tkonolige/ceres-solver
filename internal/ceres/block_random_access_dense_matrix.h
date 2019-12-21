@@ -79,6 +79,7 @@ class BlockRandomAccessDenseMatrix : public BlockRandomAccessMatrix {
   // structure, num_rows() = num_cols().
   int num_rows() const final { return num_rows_; }
   int num_cols() const final { return num_rows_; }
+  int num_nonzeros() const final { return num_rows_ * num_rows_; }
 
   // The underlying matrix storing the cells.
   const double* values() const { return values_.get(); }

@@ -132,6 +132,11 @@ class EigenSparseCholeskyTemplate : public SparseCholesky {
     return Factorize(eigen_lhs, message);
   }
 
+  int num_nonzeros() const {
+    LOG(FATAL) << "Unimplemented";
+    return -1;
+  }
+
  private:
   Eigen::Matrix<typename Solver::Scalar, Eigen::Dynamic, 1> values_,
       scalar_rhs_, scalar_solution_;
@@ -171,6 +176,8 @@ std::unique_ptr<SparseCholesky> EigenSparseCholesky::Create(
 
 EigenSparseCholesky::~EigenSparseCholesky() {}
 
+int EigenSparseCholesky::num_nonzeros() const { LOG(FATAL) << "Unimplemented"; return -1;}
+
 std::unique_ptr<SparseCholesky> FloatEigenSparseCholesky::Create(
     const OrderingType ordering_type) {
   std::unique_ptr<SparseCholesky> sparse_cholesky;
@@ -201,6 +208,9 @@ std::unique_ptr<SparseCholesky> FloatEigenSparseCholesky::Create(
 }
 
 FloatEigenSparseCholesky::~FloatEigenSparseCholesky() {}
+
+int FloatEigenSparseCholesky::num_nonzeros() const { LOG(FATAL) << "Unimplemented"; return -1;}
+
 
 }  // namespace internal
 }  // namespace ceres

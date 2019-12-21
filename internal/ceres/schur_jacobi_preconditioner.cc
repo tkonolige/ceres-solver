@@ -100,5 +100,9 @@ void SchurJacobiPreconditioner::RightMultiply(const double* x,
 
 int SchurJacobiPreconditioner::num_rows() const { return m_->num_rows(); }
 
+int SchurJacobiPreconditioner::num_nonzeros() const {
+  return m_->num_nonzeros();
+}
+
 }  // namespace internal
 }  // namespace ceres

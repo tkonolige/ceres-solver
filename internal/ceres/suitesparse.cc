@@ -391,7 +391,14 @@ LinearSolverTerminationType SuiteSparseCholesky::Factorize(
     }
   }
 
-  return ss_.Cholesky(&cholmod_lhs, factor_, message);
+  auto chol = ss_.Cholesky(&cholmod_lhs, factor_, message);
+
+  cholmod_factor* f = cholmod_copy_factor(factor_, ss_.mutable_cc());
+  cholmod_sparse* sp = cholmod_factor_to_sparse(f, ss_.mutable_cc());
+  num_nonzeros_ = cholmod_nnz(sp, ss_.mutable_cc());
+  cholmod_free_sparse(&sp, ss_.mutable_cc());
+
+  return chol;
 }
 
 CompressedRowSparseMatrix::StorageType SuiteSparseCholesky::StorageType()

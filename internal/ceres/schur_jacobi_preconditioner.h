@@ -90,6 +90,7 @@ class SchurJacobiPreconditioner : public BlockSparseMatrixPreconditioner {
   // Preconditioner interface.
   void RightMultiply(const double* x, double* y) const final;
   int num_rows() const final;
+  int num_nonzeros() const final;
 
  private:
   void InitEliminator(const CompressedRowBlockStructure& bs);

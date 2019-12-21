@@ -73,6 +73,8 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
   CHECK(b != nullptr);
   CHECK_EQ(A->num_rows(), A->num_cols());
 
+  int64_t flops = 0;
+
   LinearSolver::Summary summary;
   summary.termination_type = LINEAR_SOLVER_NO_CONVERGENCE;
   summary.message = "Maximum number of iterations reached.";
@@ -95,12 +97,14 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
   Vector z(num_cols);
   Vector tmp(num_cols);
 
-  const double tol_r = per_solve_options.r_tolerance * norm_b;
 
   tmp.setZero();
   A->RightMultiply(x, tmp.data());
+  flops += A->num_nonzeros();
   r = bref - tmp;
   double norm_r = r.norm();
+  double norm_r_init = r.norm();
+  const double tol_r = 1e-8 * norm_r;
   if (options_.min_num_iterations == 0 && norm_r <= tol_r) {
     summary.termination_type = LINEAR_SOLVER_SUCCESS;
     summary.message =
@@ -118,6 +122,7 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
     if (per_solve_options.preconditioner != NULL) {
       z.setZero();
       per_solve_options.preconditioner->RightMultiply(r.data(), z.data());
+      flops += per_solve_options.preconditioner->num_nonzeros();
     } else {
       z = r;
     }
@@ -147,6 +152,7 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
     Vector& q = z;
     q.setZero();
     A->RightMultiply(p.data(), q.data());
+    flops += A->num_nonzeros();
     const double pq = p.dot(q);
     if ((pq <= 0) || std::isinf(pq)) {
       summary.termination_type = LINEAR_SOLVER_NO_CONVERGENCE;
@@ -210,7 +216,7 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
     //   124(1-2), 45-59, 2000.
     //
     const double zeta = summary.num_iterations * (Q1 - Q0) / Q1;
-    if (zeta < per_solve_options.q_tolerance &&
+    if (false && zeta < per_solve_options.q_tolerance &&
         summary.num_iterations >= options_.min_num_iterations) {
       summary.termination_type = LINEAR_SOLVER_SUCCESS;
       summary.message =
@@ -224,7 +230,7 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
     Q0 = Q1;
 
     // Residual based termination.
-    norm_r = r. norm();
+    norm_r = r.norm();
     if (norm_r <= tol_r &&
         summary.num_iterations >= options_.min_num_iterations) {
       summary.termination_type = LINEAR_SOLVER_SUCCESS;
@@ -240,6 +246,9 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
       break;
     }
   }
+
+  LOG(INFO) << "WDA " << -double(flops)/A->num_nonzeros()/log10(r.norm() / norm_r_init) << " iters " << summary.num_iterations << " delta " << r.norm() / norm_r_init << " flops " << flops;
+  LOG(INFO) << "preconditioner nnz: " << per_solve_options.preconditioner->num_nonzeros();
 
   return summary;
 }
