@@ -1,6 +1,12 @@
+#include <gflags/gflags.h>
+
 #include "ceres/multigrid.h"
 #include "ceres/visibility.h"
 #include "ceres/trust_region_minimizer.h"
+
+JULIA_DEFINE_FAST_TLS()
+
+DEFINE_string(options_file, "", "File to read multigrid options from");
 
 namespace ceres {
 namespace internal {
@@ -77,7 +83,12 @@ namespace internal {
     eval_string("import bamg");
     eval_string("import LinearAlgebra");
     auto create = get_function("create_multigrid_ceres", "bamg");
-    mg_ = jl_call3(create, wrap_array(colptr), wrap_array(rows), wrap_array(values));
+    jl_value_t* args[4] = { wrap_array(colptr)
+                          , wrap_array(rows)
+                          , wrap_array(values)
+                          , jl_cstr_to_string(FLAGS_options_file.data())
+                          };
+    mg_ = jl_call(create, args, 4);
     check_error();
     // create global reference to mg_ so that it is not freed by the julia GC
     jl_set_global(jl_main_module, jl_symbol("mg"), mg_);
