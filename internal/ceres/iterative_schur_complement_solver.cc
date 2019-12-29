@@ -42,6 +42,7 @@
 #include "ceres/implicit_schur_complement.h"
 #include "ceres/internal/eigen.h"
 #include "ceres/linear_solver.h"
+#include "ceres/multigrid.h"
 #include "ceres/preconditioner.h"
 #include "ceres/schur_jacobi_preconditioner.h"
 #include "ceres/triplet_sparse_matrix.h"
@@ -178,6 +179,11 @@ void IterativeSchurComplementSolver::CreatePreconditioner(
     case CLUSTER_TRIDIAGONAL:
       preconditioner_.reset(new VisibilityBasedPreconditioner(
           *A->block_structure(), preconditioner_options));
+      break;
+    case JULIA_MULTIGRID:
+      preconditioner_.reset(new MultigridPreconditioner(
+          *A->block_structure(), preconditioner_options,
+          schur_complement_.get()));
       break;
     default:
       LOG(FATAL) << "Unknown Preconditioner Type";

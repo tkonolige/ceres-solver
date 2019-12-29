@@ -345,7 +345,7 @@ void SparseSchurComplementSolver::InitStorage(
     preconditioner_options.e_block_size = 3;
     preconditioner_options.f_block_size = 9;
     preconditioner_options.elimination_groups = options().elimination_groups;
-    preconditioner_.reset(new MultigridPreconditioner(*bs, preconditioner_options));
+    preconditioner_.reset(new MultigridPreconditioner(*bs, preconditioner_options, NULL));
   }
 
 
@@ -504,7 +504,7 @@ void SparseSchurComplementSolver::UpdatePreconditioner(const TrustRegionMinimize
     *l->mutable_col_blocks() = blocks_;
     *l->mutable_row_blocks() = blocks_;
 
-    preconditioner_->Update(*l.get(), NULL, minimizer);
+    ((MultigridPreconditioner*)preconditioner_.get())->UpdateExplicit(*l.get(), NULL, minimizer);
   } else if(options().preconditioner_type == SCHUR_JACOBI) {
     if (preconditioner_.get() == NULL) {
       preconditioner_.reset(new BlockDiagonalPreconditionerAdapter(blocks_));
