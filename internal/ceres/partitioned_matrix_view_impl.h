@@ -54,6 +54,9 @@ PartitionedMatrixView(
 
   num_col_blocks_f_ = bs->cols.size() - num_col_blocks_e_;
 
+  num_nonzeros_e_ = 0;
+  num_nonzeros_f_ = 0;
+
   // Compute the number of row blocks in E. The number of row blocks
   // in E maybe less than the number of row blocks in the input matrix
   // as some of the row blocks at the bottom may not have any
@@ -64,6 +67,16 @@ PartitionedMatrixView(
     const std::vector<Cell>& cells = bs->rows[r].cells;
     if (cells[0].block_id < num_col_blocks_e_) {
       ++num_row_blocks_e_;
+    }
+
+    // calculate nonzeros
+    for(auto& cell : bs->rows[r].cells) {
+      auto& block = bs->rows[r].block;
+      if (cell.block_id < num_col_blocks_e_) {
+        num_nonzeros_e_ += block.size * bs->cols[cell.block_id].size;
+      } else {
+        num_nonzeros_f_ += block.size * bs->cols[cell.block_id].size;
+      }
     }
   }
 

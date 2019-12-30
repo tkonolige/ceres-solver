@@ -249,6 +249,7 @@ namespace internal {
     JL_GC_PUSH1(&rm);
     {
       int64_t nnz_ = schur_complement_->num_nonzeros();
+      CHECK_GT(nnz_, 0);
       auto nnz = jl_box_int64(nnz_);
       JL_GC_PUSH1(&nnz);
       jl_value_t* args[8] = { mg_
