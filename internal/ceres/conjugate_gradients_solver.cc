@@ -46,6 +46,9 @@
 #include "ceres/stringprintf.h"
 #include "ceres/types.h"
 #include "glog/logging.h"
+#include <gflags/gflags.h>
+
+DEFINE_bool(fcg, false, "File to dump multigrid hierarchy to");
 
 namespace ceres {
 namespace internal {
@@ -96,6 +99,10 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
   Vector z(num_cols);
   Vector tmp(num_cols);
   const double tol_r = per_solve_options.r_tolerance * norm_b;
+  Vector r_prev;
+  if(FLAGS_fcg) {
+    r_prev = Vector(num_cols);
+  }
 
 
   tmp.setZero();
@@ -126,7 +133,11 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
     }
 
     double last_rho = rho;
-    rho = r.dot(z);
+    if(FLAGS_fcg) {
+      rho = z.dot(r - r_prev);
+    } else {
+      rho = r.dot(z);
+    }
     if (IsZeroOrInfinity(rho)) {
       summary.termination_type = LINEAR_SOLVER_FAILURE;
       summary.message = StringPrintf("Numerical failure. rho = r'z = %e.", rho);
@@ -172,6 +183,9 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
 
     xref = xref + alpha * p;
 
+    if(FLAGS_fcg) {
+      r_prev = r;
+    }
     // Ideally we would just use the update r = r - alpha*q to keep
     // track of the residual vector. However this estimate tends to
     // drift over time due to round off errors. Thus every
