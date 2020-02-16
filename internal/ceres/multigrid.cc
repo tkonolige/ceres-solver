@@ -11,6 +11,7 @@
 JULIA_DEFINE_FAST_TLS()
 
 DEFINE_string(options_file, "", "File to read multigrid options from");
+DEFINE_string(dump_file, "", "File to dump multigrid hierarchy to");
 
 using namespace std;
 
@@ -202,12 +203,13 @@ namespace internal {
     eval_string("import bamg");
     eval_string("import LinearAlgebra");
     auto create = get_function("create_multigrid_ceres", "bamg");
-    jl_value_t* args[4] = { wrap_array(colptr)
-      , wrap_array(rows)
-        , wrap_array(values)
-        , jl_cstr_to_string(FLAGS_options_file.data())
+    jl_value_t* args[5] = { wrap_array(colptr)
+                          , wrap_array(rows)
+                          , wrap_array(values)
+                          , jl_cstr_to_string(FLAGS_options_file.data())
+                          , jl_cstr_to_string(FLAGS_dump_file.data())
     };
-    mg_ = jl_call(create, args, 4);
+    mg_ = jl_call(create, args, 5);
     check_error();
     // create global reference to mg_ so that it is not freed by the julia GC
     jl_set_global(jl_main_module, jl_symbol("mg"), mg_);

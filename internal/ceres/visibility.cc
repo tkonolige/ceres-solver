@@ -41,6 +41,9 @@
 #include "ceres/graph.h"
 #include "ceres/pair_hash.h"
 #include "glog/logging.h"
+#include <gflags/gflags.h>
+
+DEFINE_bool(visibility_counts, false, "Use number of points visible from two cameras");
 
 namespace ceres {
 namespace internal {
@@ -138,9 +141,12 @@ WeightedGraph<int>* CreateSchurComplementGraph(
     const int count = camera_pair_count.second;
     DCHECK_NE(camera1, camera2);
     // Static cast necessary for Windows.
-    const double weight = static_cast<double>(count) /
+    double weight = static_cast<double>(count) /
         (sqrt(static_cast<double>(
                   visibility[camera1].size() * visibility[camera2].size())));
+    if(FLAGS_visibility_counts) {
+      weight = static_cast<double>(count);
+    }
     graph->AddEdge(camera1, camera2, weight);
   }
 
