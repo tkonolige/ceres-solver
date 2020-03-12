@@ -43,6 +43,8 @@
 #include "ceres/types.h"
 #include "glog/logging.h"
 
+DEFINE_bool(no_damping, false, "Do not use damping in Levenberg-Marquardt");
+
 namespace ceres {
 namespace internal {
 
@@ -90,7 +92,9 @@ TrustRegionStrategy::Summary LevenbergMarquardtStrategy::ComputeStep(
   lm_diagonal_ = (diagonal_ / radius_).array().sqrt();
 
   LinearSolver::PerSolveOptions solve_options;
-  solve_options.D = lm_diagonal_.data();
+  if(!FLAGS_no_damping) {
+    solve_options.D = lm_diagonal_.data();
+  }
   solve_options.q_tolerance = per_solve_options.eta;
   // solve_options.q_tolerance = -1.0;
   // Disable r_tolerance checking. Since we only care about

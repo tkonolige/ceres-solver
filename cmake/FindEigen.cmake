@@ -135,7 +135,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
   endif()
 endif()
 
-if (EIGEN_PREFER_EXPORTED_EIGEN_CMAKE_CONFIGURATION)
+if (EIGEN_PREFER_EXPORTED_EIGEN_CMAKE_CONFIGURATION AND NOT EIGEN_INCLUDE_DIR)
   # Try to find an exported CMake configuration for Eigen.
   #
   # We search twice, s/t we can invert the ordering of precedence used by
