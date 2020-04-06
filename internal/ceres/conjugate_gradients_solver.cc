@@ -39,20 +39,94 @@
 
 #include "ceres/conjugate_gradients_solver.h"
 
+#include <iostream>
 #include <cmath>
 #include <cstddef>
 #include "ceres/internal/eigen.h"
 #include "ceres/linear_operator.h"
+#include "ceres/trust_region_minimizer.h"
 #include "ceres/stringprintf.h"
 #include "ceres/types.h"
+#include "ceres/rotation.h"
 #include "glog/logging.h"
 #include <gflags/gflags.h>
+#include <array>
+#include <Eigen/QR>
+#include <Eigen/Geometry>
 
 DEFINE_bool(fcg, false, "File to dump multigrid hierarchy to");
+DEFINE_bool(random_rhs, false, "Use random right hand side");
+DEFINE_double(rtol, -1, "Relative solve tolerance, <= 0 disables");
+
 
 namespace ceres {
 namespace internal {
 namespace {
+
+double csc(double x) {
+  return 1.0/sin(x);
+}
+
+// Linearized rotation or R around axis
+void linearized_rotation(const double* R, const std::array<double, 3> axis, double* out) {
+  double squared_norm = R[0] * R[0] + R[1] * R[1] + R[2] * R[2];
+  if (squared_norm < 1e-8) {
+    out[0] = axis[0];
+    out[1] = axis[1];
+    out[2] = axis[2];
+  } else {
+    Eigen::Map<const Eigen::Matrix<double, 3, 1>> RR(R);
+    double alpha = RR.norm();
+    Eigen::Matrix<double, 3, 1> r = RR / alpha;
+    Eigen::Map<const Eigen::Matrix<double, 3, 1>> a(axis.data());
+
+    Eigen::Map<Eigen::Matrix<double, 3, 1>> o(out);
+    o = 0.5 * abs(csc(alpha/2))*(r*(-alpha*cos(alpha/2)+sqrt(2-2*cos(alpha)))*r.dot(-a)+alpha*(-a*cos(alpha/2)+r.cross(-a)*sin(alpha/2)));
+  }
+}
+
+Eigen::MatrixXd nullspace(const Eigen::VectorXd& params) {
+    Eigen::MatrixXd ns(params.size(), 7);
+    for(int i = 0; i < params.size()/9; i++) {
+      int off = i * 9;
+      // camera translations
+      std::array<double, 3> trans_x = {1, 0, 0};
+      AngleAxisRotatePoint(params.data() + off, trans_x.data(), ns.col(0).data()+off+3);
+      std::array<double, 3> trans_y = {0, 1, 0};
+      AngleAxisRotatePoint(params.data() + off, trans_y.data(), ns.col(1).data()+off+3);
+      std::array<double, 3> trans_z = {0, 0, 1};
+      AngleAxisRotatePoint(params.data() + off, trans_z.data(), ns.col(2).data()+off+3);
+
+      // scaling
+      ns(off+3,3) = params[off+3];
+      ns(off+4,3) = params[off+4];
+      ns(off+5,3) = params[off+5];
+
+      // rotations
+      linearized_rotation(params.data() + off, {1, 0, 0}, ns.col(4).data()+off);
+      linearized_rotation(params.data() + off, {0, 1, 0}, ns.col(5).data()+off);
+      linearized_rotation(params.data() + off, {0, 0, 1}, ns.col(6).data()+off);
+    }
+    Eigen::HouseholderQR<Eigen::MatrixXd> qr(ns);
+    Eigen::MatrixXd thinQ;
+    thinQ.setIdentity(params.size(), 7);
+    qr.householderQ().applyThisOnTheLeft(thinQ);
+    return thinQ;
+}
+
+template<class T>
+void orthogonalize(const Eigen::MatrixXd& ns, T rhs) {
+  for(int i = 0; i < ns.cols(); i++) {
+    double d = ns.col(i).dot(rhs);
+    rhs = rhs - d * ns.col(i);
+  }
+}
+
+Eigen::VectorXd compatible_random_rhs(const Eigen::MatrixXd& ns) {
+  Eigen::VectorXd rhs = Eigen::VectorXd::Random(ns.rows());
+  orthogonalize(ns, rhs);
+  return rhs;
+}
 
 bool IsZeroOrInfinity(double x) {
   return ((x == 0.0) || std::isinf(x));
@@ -84,7 +158,13 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
 
   const int num_cols = A->num_cols();
   VectorRef xref(x, num_cols);
-  ConstVectorRef bref(b, num_cols);
+  Vector b_;
+  Eigen::MatrixXd ns;
+  if(FLAGS_random_rhs) {
+    ns = nullspace(minimizer->x_);
+    b_ = compatible_random_rhs(ns);
+  }
+  ConstVectorRef bref(FLAGS_random_rhs ? b_.data() : b, num_cols);
 
   const double norm_b = bref.norm();
   if (norm_b == 0.0) {
@@ -98,7 +178,9 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
   Vector p(num_cols);
   Vector z(num_cols);
   Vector tmp(num_cols);
-  const double tol_r = per_solve_options.r_tolerance * norm_b;
+
+  bool use_rtol = FLAGS_rtol > 0;
+  const double tol_r = (use_rtol ? FLAGS_rtol : per_solve_options.r_tolerance) * norm_b;
   Vector r_prev;
   if(FLAGS_fcg) {
     r_prev = Vector(num_cols);
@@ -109,6 +191,9 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
   A->RightMultiply(x, tmp.data());
   summary.flops += A->num_nonzeros();
   r = bref - tmp;
+  if(FLAGS_random_rhs) {
+    orthogonalize(ns, VectorRef(r.data(), r.size()));
+  }
   double norm_r = r.norm();
   if (options_.min_num_iterations == 0 && norm_r <= tol_r) {
     summary.termination_type = LINEAR_SOLVER_SUCCESS;
@@ -130,6 +215,9 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
       summary.flops += per_solve_options.preconditioner->num_nonzeros();
     } else {
       z = r;
+    }
+    if(FLAGS_random_rhs) {
+      orthogonalize(ns, VectorRef(z.data(), z.size()));
     }
 
     double last_rho = rho;
@@ -182,6 +270,9 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
     }
 
     xref = xref + alpha * p;
+    if(FLAGS_random_rhs) {
+      orthogonalize(ns, xref);
+    }
 
     if(FLAGS_fcg) {
       r_prev = r;
@@ -229,7 +320,7 @@ LinearSolver::Summary ConjugateGradientsSolver::Solve(
     //   124(1-2), 45-59, 2000.
     //
     const double zeta = summary.num_iterations * (Q1 - Q0) / Q1;
-    if (zeta < per_solve_options.q_tolerance &&
+    if (zeta < per_solve_options.q_tolerance && !use_rtol &&
         summary.num_iterations >= options_.min_num_iterations) {
       summary.termination_type = LINEAR_SOLVER_SUCCESS;
       summary.message =

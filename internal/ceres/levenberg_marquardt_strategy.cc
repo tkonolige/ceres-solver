@@ -42,6 +42,7 @@
 #include "ceres/trust_region_strategy.h"
 #include "ceres/types.h"
 #include "glog/logging.h"
+#include <gflags/gflags.h>
 
 DEFINE_bool(no_damping, false, "Do not use damping in Levenberg-Marquardt");
 
